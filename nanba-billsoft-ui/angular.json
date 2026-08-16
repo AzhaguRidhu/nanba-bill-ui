@@ -13,7 +13,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "docs",   // ✅ changed from dist/nanba-billsoft-ui
+            "outputPath": "docs",  
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": [
@@ -46,7 +46,7 @@
                 }
               ],
               "outputHashing": "all",
-              "baseHref": "/"   // ✅ ensures routing works on GitHub Pages
+              "baseHref": "/"  
             },
             "development": {
               "optimization": false,
