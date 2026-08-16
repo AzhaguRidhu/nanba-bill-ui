@@ -1,0 +1,161 @@
+<div class="page-header">
+  <h2><i class="fa-solid fa-chart-bar"></i> Reports</h2>
+</div>
+
+<div class="report-tabs mb-16">
+  @for (r of reports; track r.key) {
+    <button class="tab-btn" [class.active]="activeReport === r.key" (click)="activeReport = r.key">{{r.label}}</button>
+  }
+</div>
+
+<!-- Daily Sales -->
+@if (activeReport === 'daily') {
+  <div class="card mb-16">
+    <div class="flex gap-8 items-center mb-16">
+      <label style="font-weight:600">Date:</label>
+      <input type="date" class="form-control" style="max-width:200px" [(ngModel)]="filterDate">
+    </div>
+    <div class="summary-row">
+      <div class="summary-item"><span>Bills</span><strong>{{dailyBills.length}}</strong></div>
+      <div class="summary-item"><span>Sales</span><strong>₹{{dailySales | number:'1.0-0'}}</strong></div>
+    </div>
+  </div>
+  <div class="card">
+    @if (dailyBills.length) {
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Bill No</th><th>Customer</th><th>Amount</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
+          <tbody>
+            @for (b of dailyBills; track b.id) {
+              <tr>
+                <td>{{b.billNumber}}</td><td>{{b.customerName}}</td>
+                <td>₹{{b.totalAmount | number:'1.0-0'}}</td>
+                <td>₹{{b.paidAmount | number:'1.0-0'}}</td>
+                <td>₹{{b.balanceAmount | number:'1.0-0'}}</td>
+                <td><span class="badge {{getStatusClass(b.paymentStatus)}}">{{b.paymentStatus}}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else { <div class="empty-state"><i class="fa-solid fa-calendar-day"></i><p>No bills on this date</p></div> }
+  </div>
+}
+
+<!-- Monthly Sales -->
+@if (activeReport === 'monthly') {
+  <div class="card mb-16">
+    <div class="flex gap-8 items-center mb-16">
+      <label style="font-weight:600">Month:</label>
+      <input type="month" class="form-control" style="max-width:200px" [(ngModel)]="filterMonth">
+    </div>
+    <div class="summary-row">
+      <div class="summary-item"><span>Bills</span><strong>{{monthlyBills.length}}</strong></div>
+      <div class="summary-item"><span>Sales</span><strong>₹{{monthlySales | number:'1.0-0'}}</strong></div>
+    </div>
+    <canvas #monthlyChart height="120"></canvas>
+  </div>
+  <div class="card">
+    @if (monthlyBills.length) {
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Bill No</th><th>Customer</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
+          <tbody>
+            @for (b of monthlyBills; track b.id) {
+              <tr><td>{{b.billNumber}}</td><td>{{b.customerName}}</td><td>{{b.billDate}}</td><td>₹{{b.totalAmount | number:'1.0-0'}}</td><td><span class="badge {{getStatusClass(b.paymentStatus)}}">{{b.paymentStatus}}</span></td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else { <div class="empty-state"><i class="fa-solid fa-calendar"></i><p>No bills this month</p></div> }
+  </div>
+}
+
+<!-- Category-wise -->
+@if (activeReport === 'category') {
+  <div class="card">
+    @if (categoryData.length) {
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Category</th><th>Items Sold</th><th>Total Amount</th></tr></thead>
+          <tbody>
+            @for (c of categoryData; track c.category) {
+              <tr><td><strong>{{c.category}}</strong></td><td>{{c.count}}</td><td>₹{{c.amount | number:'1.0-0'}}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else { <div class="empty-state"><i class="fa-solid fa-tags"></i><p>No category data</p></div> }
+  </div>
+}
+
+<!-- Customer-wise -->
+@if (activeReport === 'customer') {
+  <div class="card">
+    @if (customerData.length) {
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Customer</th><th>Bills</th><th>Total</th><th>Paid</th><th>Balance</th></tr></thead>
+          <tbody>
+            @for (c of customerData; track c.name) {
+              <tr><td><strong>{{c.name}}</strong></td><td>{{c.bills}}</td><td>₹{{c.total | number:'1.0-0'}}</td><td style="color:#16a34a">₹{{c.paid | number:'1.0-0'}}</td><td style="color:#dc2626">₹{{c.balance | number:'1.0-0'}}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else { <div class="empty-state"><i class="fa-solid fa-users"></i><p>No customer data</p></div> }
+  </div>
+}
+
+<!-- Expense Report -->
+@if (activeReport === 'expense') {
+  <div class="card mb-16">
+    <canvas #expenseChart height="120"></canvas>
+  </div>
+  <div class="card">
+    @if (expenses.length) {
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Category</th><th>Name</th><th>Amount</th><th>Date</th><th>Note</th></tr></thead>
+          <tbody>
+            @for (e of expenses; track e.id) {
+              <tr><td style="text-transform:capitalize">{{e.category}}</td><td>{{e.name}}</td><td>₹{{e.amount | number:'1.0-0'}}</td><td>{{e.date}}</td><td>{{e.note || '-'}}</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else { <div class="empty-state"><i class="fa-solid fa-wallet"></i><p>No expenses recorded</p></div> }
+  </div>
+}
+
+<!-- Profit Summary -->
+@if (activeReport === 'profit') {
+  <div class="card">
+    <div class="profit-summary">
+      <div class="profit-row"><span>Total Sales</span><span class="green">₹{{totalSales | number:'1.0-0'}}</span></div>
+      <div class="profit-row"><span>Total Expenses</span><span class="red">₹{{totalExpenses | number:'1.0-0'}}</span></div>
+      <div class="profit-row profit-final">
+        <span>Net Profit / Loss</span>
+        <span [class.green]="profit >= 0" [class.red]="profit < 0">₹{{profit | number:'1.0-0'}}</span>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Pending Payments -->
+@if (activeReport === 'pending') {
+  <div class="card">
+    @if (pendingBills.length) {
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Bill No</th><th>Customer</th><th>Date</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
+          <tbody>
+            @for (b of pendingBills; track b.id) {
+              <tr><td>{{b.billNumber}}</td><td>{{b.customerName}}</td><td>{{b.billDate}}</td><td>₹{{b.totalAmount | number:'1.0-0'}}</td><td>₹{{b.paidAmount | number:'1.0-0'}}</td><td style="color:#dc2626;font-weight:700">₹{{b.balanceAmount | number:'1.0-0'}}</td><td><span class="badge {{getStatusClass(b.paymentStatus)}}">{{b.paymentStatus}}</span></td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else { <div class="empty-state"><i class="fa-solid fa-circle-check" style="color:#16a34a"></i><p>No pending payments!</p></div> }
+  </div>
+}

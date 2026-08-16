@@ -1,0 +1,368 @@
+<!-- ===== LIST MODE ===== -->
+@if (mode === 'list') {
+  <div class="page-header">
+    <h2><i class="fa-solid fa-file-invoice"></i> Bills</h2>
+    <a routerLink="/bills/new" class="btn btn-primary"><i class="fa-solid fa-plus"></i> New Bill</a>
+  </div>
+
+  <div class="card mb-16">
+    <div class="flex gap-8 flex-wrap">
+      <input class="form-control" style="max-width:280px" placeholder="Search bill no / customer..." [(ngModel)]="search" (input)="applyFilter()">
+      <select class="form-control" style="max-width:200px" [(ngModel)]="statusFilter" (change)="applyFilter()">
+        <option value="">All Statuses</option>
+        @for (s of statuses; track s) { <option [value]="s">{{s}}</option> }
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    @if (filtered.length) {
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Bill No</th><th>Customer</th><th>Date</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            @for (b of filtered; track b.id) {
+              <tr>
+                <td><strong>{{b.billNumber}}</strong></td>
+                <td>{{b.customerName}}<br><small style="color:#94a3b8">{{b.customerPlace}}</small></td>
+                <td>{{b.billDate}}</td>
+                <td>₹{{b.totalAmount | number:'1.0-0'}}</td>
+                <td style="color:#16a34a;font-weight:600">₹{{b.paidAmount | number:'1.0-0'}}</td>
+                <td style="color:#dc2626;font-weight:600">₹{{b.balanceAmount | number:'1.0-0'}}</td>
+                <td><span class="badge {{getStatusClass(b.paymentStatus)}}">{{b.paymentStatus}}</span></td>
+                <td>
+                  <div class="flex gap-8">
+                    <a [routerLink]="['/bills', b.id]" class="btn btn-info btn-sm"><i class="fa-solid fa-eye"></i> View</a>
+                    <button class="btn btn-danger btn-sm" (click)="deleteBill(b.id)"><i class="fa-solid fa-trash"></i></button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="empty-state">
+        <i class="fa-solid fa-file-invoice"></i>
+        <p>No bills found. <a routerLink="/bills/new">Create your first bill</a></p>
+      </div>
+    }
+  </div>
+}
+
+<!-- ===== NEW BILL MODE ===== -->
+@if (mode === 'new') {
+  <div class="page-header">
+    <h2><i class="fa-solid fa-plus"></i> Create New Bill</h2>
+    <a routerLink="/bills" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Back</a>
+  </div>
+
+  <!-- Bill Info -->
+  <div class="card mb-16">
+    <h3 class="section-title">Bill Information</h3>
+    <div class="grid-3">
+      <div class="form-group">
+        <label>Bill Number</label>
+        <input class="form-control" [(ngModel)]="form.billNumber" readonly style="background:#f8fafc">
+      </div>
+      <div class="form-group">
+        <label>Bill Date *</label>
+        <input type="date" class="form-control" [(ngModel)]="form.billDate">
+      </div>
+      <div class="form-group">
+        <label>Select Existing Customer</label>
+        <select class="form-control" [(ngModel)]="selectedCustomerId" (change)="onCustomerChange()">
+          <option value="">-- Select customer --</option>
+          @for (c of customers; track c.id) {
+            <option [value]="c.id">{{c.name}} — {{c.mobile}}</option>
+          }
+        </select>
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="form-group">
+        <label>Customer Name *</label>
+        <input class="form-control" [(ngModel)]="form.customerName" placeholder="Enter customer name">
+      </div>
+      <div class="form-group">
+        <label>Place</label>
+        <input class="form-control" [(ngModel)]="form.customerPlace" placeholder="City / Town">
+      </div>
+      <div class="form-group">
+        <label>Mobile Number</label>
+        <input class="form-control" [(ngModel)]="form.customerMobile" placeholder="Mobile number">
+      </div>
+    </div>
+    <div class="grid-3">
+      <div class="form-group">
+        <label>WhatsApp Number</label>
+        <input class="form-control" [(ngModel)]="form.customerWhatsapp" placeholder="WhatsApp number">
+      </div>
+    </div>
+  </div>
+
+  <!-- Items -->
+  <div class="card mb-16">
+    <div class="flex items-center" style="justify-content:space-between;margin-bottom:16px">
+      <h3 class="section-title" style="margin:0">Items / Services</h3>
+      <button class="btn btn-primary btn-sm" (click)="addItem()"><i class="fa-solid fa-plus"></i> Add Item</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="min-width:140px">Category</th>
+            <th style="min-width:140px">Item Name</th>
+            <th style="min-width:140px">Description</th>
+            <th style="min-width:70px">Qty</th>
+            <th style="min-width:100px">Rate (₹)</th>
+            <th style="min-width:100px">Discount (₹)</th>
+            <th style="min-width:100px">Amount (₹)</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of items; track item.id; let i = $index) {
+            <tr>
+              <td>
+                <select class="form-control" [(ngModel)]="item.category">
+                  @for (c of categories; track c) { <option [value]="c">{{c}}</option> }
+                </select>
+              </td>
+              <td><input class="form-control" [(ngModel)]="item.itemName" placeholder="Item name"></td>
+              <td><input class="form-control" [(ngModel)]="item.description" placeholder="Description"></td>
+              <td><input type="number" class="form-control" [(ngModel)]="item.quantity" (ngModelChange)="calcItem(item)" min="1"></td>
+              <td><input type="number" class="form-control" [(ngModel)]="item.rate" (ngModelChange)="calcItem(item)" min="0"></td>
+              <td><input type="number" class="form-control" [(ngModel)]="item.discount" (ngModelChange)="calcItem(item)" min="0"></td>
+              <td><strong style="color:#1e293b">₹{{item.amount | number:'1.0-0'}}</strong></td>
+              <td>
+                <button class="btn btn-danger btn-sm" (click)="removeItem(i)"><i class="fa-solid fa-trash"></i></button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Totals -->
+  <div class="card mb-16">
+    <div class="totals-layout">
+      <div class="totals-inputs">
+        <h3 class="section-title">Adjustments</h3>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Bill Discount (₹)</label>
+            <input type="number" class="form-control" [(ngModel)]="billDiscount" (ngModelChange)="calcTotals()" min="0" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label>Extra Charges (₹)</label>
+            <input type="number" class="form-control" [(ngModel)]="billCharges" (ngModelChange)="calcTotals()" min="0" placeholder="0">
+          </div>
+        </div>
+      </div>
+      <div class="totals-box">
+        <div class="total-row"><span>Subtotal</span><span>₹{{form.subtotal || 0 | number:'1.0-0'}}</span></div>
+        <div class="total-row"><span>Discount</span><span style="color:#dc2626">− ₹{{billDiscount || 0 | number:'1.0-0'}}</span></div>
+        <div class="total-row"><span>Extra Charges</span><span style="color:#ea580c">+ ₹{{billCharges || 0 | number:'1.0-0'}}</span></div>
+        <div class="total-row total-final"><span>Total Amount</span><span>₹{{form.totalAmount || 0 | number:'1.0-0'}}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex gap-8">
+    <button class="btn btn-primary" (click)="saveBill()"><i class="fa-solid fa-save"></i> Save Bill</button>
+    <a routerLink="/bills" class="btn btn-secondary">Cancel</a>
+  </div>
+}
+
+<!-- ===== VIEW BILL MODE ===== -->
+@if (mode === 'view' && viewBill) {
+  <div class="page-header no-print">
+    <h2><i class="fa-solid fa-file-invoice"></i> {{viewBill.billNumber}}</h2>
+    <div class="flex gap-8 flex-wrap">
+      <button class="btn btn-success" (click)="openPayment()"><i class="fa-solid fa-plus"></i> Add Payment</button>
+      <button class="btn btn-primary" (click)="downloadPDF()"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+      <button class="btn btn-info" (click)="downloadJPEG()"><i class="fa-solid fa-image"></i> JPEG</button>
+      <button class="btn btn-secondary" (click)="printBill()"><i class="fa-solid fa-print"></i> Print</button>
+      <button class="btn btn-danger" (click)="deleteBill(viewBill.id)"><i class="fa-solid fa-trash"></i></button>
+      <a routerLink="/bills" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Back</a>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="grid-3 mb-16 no-print">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#dbeafe"><i class="fa-solid fa-indian-rupee-sign" style="color:#2563eb"></i></div>
+      <div class="stat-info"><div class="label">Total Amount</div><div class="value">₹{{viewBill.totalAmount | number:'1.0-0'}}</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#dcfce7"><i class="fa-solid fa-circle-check" style="color:#16a34a"></i></div>
+      <div class="stat-info"><div class="label">Paid Amount</div><div class="value" style="color:#16a34a">₹{{viewBill.paidAmount | number:'1.0-0'}}</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fee2e2"><i class="fa-solid fa-clock" style="color:#dc2626"></i></div>
+      <div class="stat-info">
+        <div class="label">Balance Due</div>
+        <div class="value" style="color:#dc2626">₹{{viewBill.balanceAmount | number:'1.0-0'}}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Printable Bill -->
+  <div id="bill-print" class="bill-paper">
+
+    <!-- Header -->
+    <div class="bill-header">
+      <div class="business-info">
+        <div class="business-name">🖨️ Nanba Printing &amp; Design</div>
+        <div class="business-sub">Flex &nbsp;|&nbsp; Photo Frame &nbsp;|&nbsp; LED Board &nbsp;|&nbsp; Offset Printing &nbsp;|&nbsp; Visiting Card</div>
+      </div>
+      <div class="bill-meta">
+        <div class="bill-number-label">INVOICE</div>
+        <div class="bill-number-val">{{viewBill.billNumber}}</div>
+        <div class="bill-date-val">Date: {{viewBill.billDate}}</div>
+        <div style="margin-top:6px"><span class="badge {{getStatusClass(viewBill.paymentStatus)}}">{{viewBill.paymentStatus}}</span></div>
+      </div>
+    </div>
+
+    <!-- Customer -->
+    <div class="customer-section">
+      <div class="customer-label">BILL TO</div>
+      <div class="customer-name">{{viewBill.customerName}}</div>
+      @if (viewBill.customerPlace) {
+        <div class="customer-detail"><i class="fa-solid fa-location-dot"></i> {{viewBill.customerPlace}}</div>
+      }
+      @if (viewBill.customerMobile) {
+        <div class="customer-detail"><i class="fa-solid fa-phone"></i> {{viewBill.customerMobile}}</div>
+      }
+      @if (viewBill.customerWhatsapp) {
+        <div class="customer-detail"><i class="fa-brands fa-whatsapp"></i> {{viewBill.customerWhatsapp}}</div>
+      }
+    </div>
+
+    <!-- Items Table -->
+    <table class="bill-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Category</th>
+          <th>Item / Service</th>
+          <th>Description</th>
+          <th>Qty</th>
+          <th>Rate (₹)</th>
+          <th>Discount (₹)</th>
+          <th>Amount (₹)</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of viewBill.items; track item.id; let i = $index) {
+          <tr>
+            <td>{{i + 1}}</td>
+            <td><span class="cat-badge">{{item.category}}</span></td>
+            <td><strong>{{item.itemName || '—'}}</strong></td>
+            <td>{{item.description || '—'}}</td>
+            <td style="text-align:center">{{item.quantity}}</td>
+            <td style="text-align:right">{{item.rate | number:'1.0-0'}}</td>
+            <td style="text-align:right;color:#dc2626">{{item.discount | number:'1.0-0'}}</td>
+            <td style="text-align:right"><strong>{{item.amount | number:'1.0-0'}}</strong></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <!-- Totals -->
+    <div class="bill-totals-section">
+      <div class="totals-right">
+        <div class="t-row"><span>Subtotal</span><span>₹{{viewBill.subtotal | number:'1.0-0'}}</span></div>
+        @if (viewBill.discount > 0) {
+          <div class="t-row"><span>Discount</span><span style="color:#dc2626">− ₹{{viewBill.discount | number:'1.0-0'}}</span></div>
+        }
+        @if (viewBill.charges > 0) {
+          <div class="t-row"><span>Extra Charges</span><span style="color:#ea580c">+ ₹{{viewBill.charges | number:'1.0-0'}}</span></div>
+        }
+        <div class="t-row t-grand"><span>Total Amount</span><span>₹{{viewBill.totalAmount | number:'1.0-0'}}</span></div>
+        <div class="t-row"><span>Paid Amount</span><span style="color:#16a34a">₹{{viewBill.paidAmount | number:'1.0-0'}}</span></div>
+        <div class="t-row t-balance"><span>Balance Due</span><span>₹{{viewBill.balanceAmount | number:'1.0-0'}}</span></div>
+      </div>
+    </div>
+
+    <!-- Payment History -->
+    @if (viewBill.payments && viewBill.payments.length) {
+      <div class="payment-history-section">
+        <div class="section-heading">Payment History</div>
+        <table class="bill-table">
+          <thead>
+            <tr><th>Date</th><th>Type</th><th>Amount (₹)</th><th>Note</th></tr>
+          </thead>
+          <tbody>
+            @for (p of viewBill.payments; track p.id) {
+              <tr>
+                <td>{{p.date}}</td>
+                <td style="text-transform:capitalize">{{p.type}}</td>
+                <td style="text-align:right;color:#16a34a;font-weight:600">₹{{p.amount | number:'1.0-0'}}</td>
+                <td>{{p.note || '—'}}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    <!-- Terms -->
+    <div class="terms-section">
+      <div class="section-heading">Terms &amp; Conditions</div>
+      <ol class="terms-list">
+        @for (t of terms; track t) { <li>{{t}}</li> }
+      </ol>
+    </div>
+
+    <!-- Footer -->
+    <div class="bill-footer">
+      <div class="footer-thanks">Thank you for your business! 🙏</div>
+      <div class="signature-area">
+        <div class="signature-line"></div>
+        <div class="signature-label">Authorized Signature</div>
+      </div>
+    </div>
+
+  </div>
+}
+
+<!-- Payment Modal -->
+@if (showPaymentModal && viewBill) {
+  <div class="modal-overlay" (click)="showPaymentModal=false">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-credit-card"></i> Add Payment — {{viewBill.billNumber}}</h3>
+        <button class="close-btn" (click)="showPaymentModal=false"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Payment Type</label>
+          <select class="form-control" [(ngModel)]="paymentType">
+            <option value="advance">Advance Payment</option>
+            <option value="full">Full Payment</option>
+            <option value="balance">Balance Payment</option>
+            <option value="credit">Credit</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Amount (₹)</label>
+          <input type="number" class="form-control" [(ngModel)]="paymentAmount" min="0" placeholder="Enter amount">
+          <small style="color:#64748b">Balance due: ₹{{viewBill.balanceAmount | number:'1.0-0'}}</small>
+        </div>
+        <div class="form-group">
+          <label>Note (optional)</label>
+          <input class="form-control" [(ngModel)]="paymentNote" placeholder="e.g. Cash, UPI, etc.">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="showPaymentModal=false">Cancel</button>
+        <button class="btn btn-primary" (click)="addPayment()"><i class="fa-solid fa-save"></i> Save Payment</button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,247 @@
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 16px;
+}
+
+/* Totals layout in new bill form */
+.totals-layout {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.totals-inputs { flex: 1; min-width: 260px; }
+.totals-box {
+  min-width: 280px;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 16px 20px;
+  border: 1px solid #e2e8f0;
+}
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 7px 0;
+  font-size: 0.9rem;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+}
+.total-row:last-child { border-bottom: none; }
+.total-final {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  padding-top: 10px;
+  margin-top: 4px;
+  border-top: 2px solid #1e293b;
+  border-bottom: none;
+}
+
+/* ===== BILL PAPER ===== */
+.bill-paper {
+  background: #fff;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 36px 40px;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  font-size: 0.875rem;
+  color: #1e293b;
+}
+
+.bill-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+  border-bottom: 3px solid #f59e0b;
+}
+
+.business-name {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #1e293b;
+  letter-spacing: -0.02em;
+}
+.business-sub {
+  color: #64748b;
+  font-size: 0.82rem;
+  margin-top: 6px;
+}
+
+.bill-meta { text-align: right; }
+.bill-number-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #94a3b8;
+  text-transform: uppercase;
+}
+.bill-number-val {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #f59e0b;
+  margin: 2px 0;
+}
+.bill-date-val { color: #64748b; font-size: 0.85rem; }
+
+/* Customer */
+.customer-section {
+  background: #f8fafc;
+  border-left: 4px solid #f59e0b;
+  border-radius: 0 8px 8px 0;
+  padding: 14px 18px;
+  margin-bottom: 24px;
+}
+.customer-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.customer-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+.customer-detail {
+  color: #64748b;
+  font-size: 0.85rem;
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Items table */
+.bill-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  font-size: 0.85rem;
+}
+.bill-table thead tr {
+  background: #1e293b;
+  color: #fff;
+}
+.bill-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.bill-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+.bill-table tbody tr:hover td { background: #fafafa; }
+.bill-table tbody tr:last-child td { border-bottom: 2px solid #e2e8f0; }
+
+.cat-badge {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Totals section */
+.bill-totals-section {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 24px;
+}
+.totals-right {
+  min-width: 300px;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 16px 20px;
+  border: 1px solid #e2e8f0;
+}
+.t-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 7px 0;
+  font-size: 0.9rem;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+}
+.t-row:last-child { border-bottom: none; }
+.t-grand {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e293b;
+  border-top: 2px solid #1e293b;
+  border-bottom: 2px solid #1e293b;
+  padding: 10px 0;
+  margin: 4px 0;
+}
+.t-balance {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #dc2626;
+  border-bottom: none;
+}
+
+/* Payment history */
+.payment-history-section { margin-bottom: 24px; }
+.section-heading {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid #f59e0b;
+  display: inline-block;
+}
+
+/* Terms */
+.terms-section { margin-bottom: 28px; }
+.terms-list {
+  padding-left: 18px;
+  color: #64748b;
+  font-size: 0.78rem;
+  line-height: 1.9;
+  columns: 2;
+  column-gap: 24px;
+}
+
+/* Footer */
+.bill-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+.footer-thanks { color: #64748b; font-size: 0.9rem; }
+.signature-area { text-align: center; }
+.signature-line {
+  width: 180px;
+  border-top: 1px solid #1e293b;
+  margin-bottom: 6px;
+}
+.signature-label { font-size: 0.78rem; color: #64748b; }
+
+/* Print */
+@media print {
+  .no-print { display: none !important; }
+  .bill-paper {
+    box-shadow: none;
+    padding: 20px;
+    max-width: 100%;
+    border-radius: 0;
+  }
+  body { background: #fff !important; }
+  .terms-list { columns: 1; }
+}

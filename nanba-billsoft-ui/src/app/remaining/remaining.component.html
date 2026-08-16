@@ -1,0 +1,60 @@
+<div class="page-header">
+  <h2><i class="fa-solid fa-clock"></i> Remaining / Balance</h2>
+</div>
+
+<div class="grid-3 mb-16">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#fee2e2"><i class="fa-solid fa-triangle-exclamation" style="color:#dc2626"></i></div>
+    <div class="stat-info"><div class="label">Total Outstanding</div><div class="value">₹{{totalOutstanding | number:'1.0-0'}}</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#fef9c3"><i class="fa-solid fa-hourglass-half" style="color:#ca8a04"></i></div>
+    <div class="stat-info"><div class="label">Pending Amount</div><div class="value">₹{{totalPending | number:'1.0-0'}}</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#fce7f3"><i class="fa-solid fa-hand-holding-dollar" style="color:#db2777"></i></div>
+    <div class="stat-info"><div class="label">Credit Amount</div><div class="value">₹{{totalCredit | number:'1.0-0'}}</div></div>
+  </div>
+</div>
+
+<div class="card mb-16">
+  <div class="flex gap-8 flex-wrap">
+    <input class="form-control" style="max-width:280px" placeholder="Search..." [(ngModel)]="search" (input)="applyFilter()">
+    <select class="form-control" style="max-width:200px" [(ngModel)]="statusFilter" (change)="applyFilter()">
+      <option value="">All Statuses</option>
+      @for (s of statuses; track s) { <option [value]="s">{{s}}</option> }
+    </select>
+  </div>
+</div>
+
+<div class="card">
+  @if (filtered.length) {
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Bill No</th><th>Customer</th><th>Place</th><th>Bill Date</th><th>Total Bill</th><th>Paid</th><th>Balance</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+          @for (b of filtered; track b.id) {
+            <tr>
+              <td><strong>{{b.billNumber}}</strong></td>
+              <td>{{b.customerName}}</td>
+              <td>{{b.customerPlace}}</td>
+              <td>{{b.billDate}}</td>
+              <td>₹{{b.totalAmount | number:'1.0-0'}}</td>
+              <td style="color:#16a34a">₹{{b.paidAmount | number:'1.0-0'}}</td>
+              <td style="color:#dc2626;font-weight:700">₹{{b.balanceAmount | number:'1.0-0'}}</td>
+              <td><span class="badge {{getStatusClass(b.paymentStatus)}}">{{b.paymentStatus}}</span></td>
+              <td>
+                <div class="flex gap-8">
+                  <a [routerLink]="['/bills', b.id]" class="btn btn-info btn-sm"><i class="fa-solid fa-eye"></i></a>
+                  <a [routerLink]="['/payments']" class="btn btn-success btn-sm"><i class="fa-solid fa-plus"></i> Pay</a>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <div class="empty-state"><i class="fa-solid fa-circle-check" style="color:#16a34a"></i><p>No outstanding balances!</p></div>
+  }
+</div>

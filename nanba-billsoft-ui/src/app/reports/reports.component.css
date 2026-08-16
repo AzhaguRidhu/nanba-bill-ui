@@ -1,0 +1,15 @@
+.report-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+.tab-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; cursor: pointer; font-size: 0.875rem; font-weight: 500; color: #64748b; transition: all 0.2s; }
+.tab-btn.active { background: #f59e0b; color: #1e293b; border-color: #f59e0b; }
+.tab-btn:hover:not(.active) { background: #f8fafc; }
+
+.summary-row { display: flex; gap: 24px; margin-bottom: 20px; }
+.summary-item { background: #f8fafc; border-radius: 8px; padding: 12px 20px; display: flex; flex-direction: column; gap: 4px; }
+.summary-item span { font-size: 0.8rem; color: #64748b; }
+.summary-item strong { font-size: 1.2rem; font-weight: 700; color: #1e293b; }
+
+.profit-summary { max-width: 400px; }
+.profit-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-size: 1rem; }
+.profit-final { font-size: 1.2rem; font-weight: 700; border-top: 2px solid #1e293b; border-bottom: none; margin-top: 8px; padding-top: 16px; }
+.green { color: #16a34a; }
+.red { color: #dc2626; }

@@ -1,0 +1,108 @@
+<div class="page-header">
+  <h2><i class="fa-solid fa-users"></i> Customers</h2>
+  <button class="btn btn-primary" (click)="openAdd()"><i class="fa-solid fa-plus"></i> Add Customer</button>
+</div>
+
+<div class="card mb-16">
+  <input class="form-control" placeholder="Search by name, mobile, place..." [(ngModel)]="search" (input)="applyFilter()" style="max-width:360px">
+</div>
+
+<div class="card">
+  @if (filtered.length) {
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Name</th><th>Place</th><th>Mobile</th><th>WhatsApp</th><th>Bills</th><th>Actions</th></tr></thead>
+        <tbody>
+          @for (c of filtered; track c.id; let i = $index) {
+            <tr>
+              <td>{{i+1}}</td>
+              <td><strong>{{c.name}}</strong></td>
+              <td>{{c.place}}</td>
+              <td>{{c.mobile}}</td>
+              <td>{{c.whatsapp || '-'}}</td>
+              <td><button class="btn btn-info btn-sm" (click)="viewHistory(c)">History</button></td>
+              <td>
+                <div class="flex gap-8">
+                  <button class="btn btn-secondary btn-sm" (click)="openEdit(c)"><i class="fa-solid fa-pen"></i></button>
+                  <button class="btn btn-danger btn-sm" (click)="delete(c.id)"><i class="fa-solid fa-trash"></i></button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <div class="empty-state"><i class="fa-solid fa-users"></i><p>No customers found</p></div>
+  }
+</div>
+
+@if (showModal) {
+  <div class="modal-overlay" (click)="showModal=false">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{editing ? 'Edit' : 'Add'}} Customer</h3>
+        <button class="close-btn" (click)="showModal=false"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Customer Name *</label>
+            <input class="form-control" [(ngModel)]="form.name" placeholder="Full name">
+          </div>
+          <div class="form-group">
+            <label>Place</label>
+            <input class="form-control" [(ngModel)]="form.place" placeholder="City / Town">
+          </div>
+          <div class="form-group">
+            <label>Mobile Number *</label>
+            <input class="form-control" [(ngModel)]="form.mobile" placeholder="10-digit mobile">
+          </div>
+          <div class="form-group">
+            <label>WhatsApp Number</label>
+            <input class="form-control" [(ngModel)]="form.whatsapp" placeholder="WhatsApp number">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="showModal=false">Cancel</button>
+        <button class="btn btn-primary" (click)="save()">Save Customer</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (showHistoryModal && historyCustomer) {
+  <div class="modal-overlay" (click)="showHistoryModal=false">
+    <div class="modal modal-lg" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Bill History — {{historyCustomer.name}}</h3>
+        <button class="close-btn" (click)="showHistoryModal=false"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        @if (customerBills.length) {
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Bill No</th><th>Date</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                @for (b of customerBills; track b.id) {
+                  <tr>
+                    <td>{{b.billNumber}}</td>
+                    <td>{{b.billDate}}</td>
+                    <td>₹{{b.totalAmount | number:'1.0-0'}}</td>
+                    <td>₹{{b.paidAmount | number:'1.0-0'}}</td>
+                    <td>₹{{b.balanceAmount | number:'1.0-0'}}</td>
+                    <td><span class="badge {{getStatusClass(b.paymentStatus)}}">{{b.paymentStatus}}</span></td>
+                    <td><a [routerLink]="['/bills', b.id]" class="btn btn-info btn-sm">View</a></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="empty-state"><i class="fa-solid fa-file-invoice"></i><p>No bills for this customer</p></div>
+        }
+      </div>
+    </div>
+  </div>
+}

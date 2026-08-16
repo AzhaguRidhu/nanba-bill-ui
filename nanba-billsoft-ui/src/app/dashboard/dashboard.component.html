@@ -1,0 +1,84 @@
+<div class="page-header">
+  <h2><i class="fa-solid fa-gauge-high"></i> Dashboard</h2>
+  <a routerLink="/bills/new" class="btn btn-primary"><i class="fa-solid fa-plus"></i> New Bill</a>
+</div>
+
+<div class="grid-4 mb-16">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#fef9c3"><i class="fa-solid fa-file-invoice" style="color:#ca8a04"></i></div>
+    <div class="stat-info"><div class="label">Today's Bills</div><div class="value">{{stats.todayBills}}</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#dcfce7"><i class="fa-solid fa-indian-rupee-sign" style="color:#16a34a"></i></div>
+    <div class="stat-info"><div class="label">Today's Sales</div><div class="value">₹{{stats.todaySales | number:'1.0-0'}}</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#dbeafe"><i class="fa-solid fa-chart-line" style="color:#2563eb"></i></div>
+    <div class="stat-info"><div class="label">Total Sales</div><div class="value">₹{{stats.totalSales | number:'1.0-0'}}</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#fee2e2"><i class="fa-solid fa-wallet" style="color:#dc2626"></i></div>
+    <div class="stat-info"><div class="label">Total Expenses</div><div class="value">₹{{stats.totalExpenses | number:'1.0-0'}}</div></div>
+  </div>
+</div>
+
+<div class="grid-4 mb-16">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#ffedd5"><i class="fa-solid fa-clock" style="color:#ea580c"></i></div>
+    <div class="stat-info"><div class="label">Pending Amount</div><div class="value">₹{{stats.pendingAmount | number:'1.0-0'}}</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#fce7f3"><i class="fa-solid fa-hand-holding-dollar" style="color:#db2777"></i></div>
+    <div class="stat-info"><div class="label">Credit Amount</div><div class="value">₹{{stats.creditAmount | number:'1.0-0'}}</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#dcfce7"><i class="fa-solid fa-circle-check" style="color:#16a34a"></i></div>
+    <div class="stat-info"><div class="label">Fully Paid Bills</div><div class="value">{{stats.fullyPaid}}</div></div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#fef9c3"><i class="fa-solid fa-hourglass-half" style="color:#ca8a04"></i></div>
+    <div class="stat-info"><div class="label">Pending Bills</div><div class="value">{{stats.pendingBills}}</div></div>
+  </div>
+</div>
+
+<div class="grid-2 mb-16">
+  <div class="card">
+    <h3 style="margin-bottom:16px;font-size:1rem;color:#374151">Monthly Sales</h3>
+    <canvas #salesChart height="200"></canvas>
+    @if (!ds.getMonthlySales().length) {
+      <div class="empty-state"><i class="fa-solid fa-chart-bar"></i><p>No sales data yet</p></div>
+    }
+  </div>
+  <div class="card">
+    <h3 style="margin-bottom:16px;font-size:1rem;color:#374151">Category-wise Sales</h3>
+    <canvas #categoryChart height="200"></canvas>
+    @if (!ds.getCategorySales().length) {
+      <div class="empty-state"><i class="fa-solid fa-chart-pie"></i><p>No category data yet</p></div>
+    }
+  </div>
+</div>
+
+<div class="card">
+  <h3 style="margin-bottom:16px;font-size:1rem;color:#374151">Recent Bills</h3>
+  @if (recentBills.length) {
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Bill No</th><th>Customer</th><th>Date</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+          @for (b of recentBills; track b.id) {
+            <tr>
+              <td><strong>{{b.billNumber}}</strong></td>
+              <td>{{b.customerName}}</td>
+              <td>{{b.billDate}}</td>
+              <td>₹{{b.totalAmount | number:'1.0-0'}}</td>
+              <td><span class="badge {{getStatusClass(b.paymentStatus)}}">{{b.paymentStatus}}</span></td>
+              <td><a [routerLink]="['/bills', b.id]" class="btn btn-info btn-sm">View</a></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <div class="empty-state"><i class="fa-solid fa-file-invoice"></i><p>No bills yet. <a routerLink="/bills/new">Create your first bill</a></p></div>
+  }
+</div>

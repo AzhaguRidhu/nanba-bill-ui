@@ -1,0 +1,100 @@
+<div class="page-header">
+  <h2><i class="fa-solid fa-wallet"></i> Expenses</h2>
+  <button class="btn btn-primary" (click)="openAdd()"><i class="fa-solid fa-plus"></i> Add Expense</button>
+</div>
+
+<div class="grid-4 mb-16">
+  @for (tab of tabs; track tab.key) {
+    <div class="stat-card tab-stat" [class.active-tab]="activeTab === tab.key" (click)="setTab(tab.key)" style="cursor:pointer">
+      <div class="stat-icon" style="background:#f1f5f9"><i class="fa-solid {{tab.icon}}" style="color:#64748b"></i></div>
+      <div class="stat-info">
+        <div class="label">{{tab.label}}</div>
+        <div class="value">₹{{expenses | expenseSum:tab.key | number:'1.0-0'}}</div>
+      </div>
+    </div>
+  }
+</div>
+
+<div class="tabs mb-16">
+  @for (tab of tabs; track tab.key) {
+    <button class="tab-btn" [class.active]="activeTab === tab.key" (click)="setTab(tab.key)">
+      <i class="fa-solid {{tab.icon}}"></i> {{tab.label}}
+    </button>
+  }
+</div>
+
+<div class="card">
+  <div class="flex items-center" style="justify-content:space-between;margin-bottom:16px">
+    <div style="font-weight:600;color:#374151">Total: <span style="color:#f59e0b">₹{{tabTotal | number:'1.0-0'}}</span></div>
+  </div>
+  @if (filtered.length) {
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Name</th><th>Amount</th><th>Date</th><th>Note</th><th>Actions</th></tr></thead>
+        <tbody>
+          @for (e of filtered; track e.id; let i = $index) {
+            <tr>
+              <td>{{i+1}}</td>
+              <td><strong>{{e.name}}</strong></td>
+              <td>₹{{e.amount | number:'1.0-0'}}</td>
+              <td>{{e.date}}</td>
+              <td>{{e.note || '-'}}</td>
+              <td>
+                <div class="flex gap-8">
+                  <button class="btn btn-secondary btn-sm" (click)="openEdit(e)"><i class="fa-solid fa-pen"></i></button>
+                  <button class="btn btn-danger btn-sm" (click)="delete(e.id)"><i class="fa-solid fa-trash"></i></button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  } @else {
+    <div class="empty-state"><i class="fa-solid fa-wallet"></i><p>No expenses in this category</p></div>
+  }
+</div>
+
+@if (showModal) {
+  <div class="modal-overlay" (click)="showModal=false">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{editing ? 'Edit' : 'Add'}} Expense</h3>
+        <button class="close-btn" (click)="showModal=false"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Category</label>
+          <select class="form-control" [(ngModel)]="form.category">
+            <option value="direct">Direct Expenses</option>
+            <option value="fixed">Fixed Expenses</option>
+            <option value="depreciation">Depreciation</option>
+            <option value="printing">Printing Expenses</option>
+          </select>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Expense Name *</label>
+            <input class="form-control" [(ngModel)]="form.name" placeholder="e.g. Flex material">
+          </div>
+          <div class="form-group">
+            <label>Amount (₹) *</label>
+            <input type="number" class="form-control" [(ngModel)]="form.amount" min="0">
+          </div>
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" class="form-control" [(ngModel)]="form.date">
+          </div>
+          <div class="form-group">
+            <label>Note</label>
+            <input class="form-control" [(ngModel)]="form.note" placeholder="Optional note">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="showModal=false">Cancel</button>
+        <button class="btn btn-primary" (click)="save()">Save</button>
+      </div>
+    </div>
+  </div>
+}
