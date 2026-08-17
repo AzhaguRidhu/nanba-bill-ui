@@ -1,0 +1,81 @@
+<div class="page-header">
+  <h2><i class="fa-solid fa-users-gear"></i> User Management</h2>
+  <button class="btn btn-primary" (click)="openForm()">
+    <i class="fa-solid fa-plus"></i> Add User
+  </button>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Username</th>
+          <th>Role</th>
+          <th class="text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (u of users; track u.id) {
+          <tr>
+            <td>{{u.name}}</td>
+            <td>{{u.username}}</td>
+            <td>
+              <span class="badge" [class.badge-warning]="u.role === 'super'" [class.badge-info]="u.role === 'user'">
+                {{u.role === 'super' ? 'Super Admin' : 'User'}}
+              </span>
+            </td>
+            <td class="text-right">
+              <button class="btn btn-info btn-sm" (click)="openForm(u)"><i class="fa-solid fa-pen"></i></button>
+              <button class="btn btn-danger btn-sm" style="margin-left:6px" (click)="deleteUser(u.id)" [disabled]="u.id === currentUserId">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+@if (showForm) {
+  <div class="modal-overlay" (click)="closeForm()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{editUser ? 'Edit User' : 'Add User'}}</h3>
+        <button class="close-btn" (click)="closeForm()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input class="form-control" [(ngModel)]="form.name" placeholder="Full name" />
+        </div>
+        <div class="form-group">
+          <label>Username</label>
+          <input class="form-control" [(ngModel)]="form.username" placeholder="Username" />
+        </div>
+        <div class="form-group">
+          <label>Password {{editUser ? '(leave blank to keep)' : ''}}</label>
+          <input class="form-control" [(ngModel)]="form.password" type="password" placeholder="Password" />
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <select class="form-control" [(ngModel)]="form.role">
+            <option value="user">User</option>
+            <option value="super">Super Admin</option>
+          </select>
+        </div>
+        @if (formError) {
+          <div class="alert-error"><i class="fa-solid fa-circle-exclamation"></i> {{formError}}</div>
+        }
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeForm()">Cancel</button>
+        <button class="btn btn-primary" (click)="saveUser()">
+          <i class="fa-solid fa-floppy-disk"></i> Save
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -57,6 +57,46 @@ export interface Expense {
   note: string;
 }
 
+export interface ItemMaster {
+  id: string;
+  categoryId: string;   // links to CategoryItem.id
+  categoryName: string; // denormalized for display
+  itemName: string;
+  description: string;
+  rate: number;
+}
+
+export interface CategoryItem {
+  id: string;
+  name: string;        // category name shown in bill dropdown
+  itemName: string;    // default item name
+  description: string; // default description
+  rate: number;        // default rate
+}
+
+export interface ExpenseCategory {
+  id: string;
+  name: string;
+  type: 'direct' | 'fixed' | 'depreciation' | 'printing';
+}
+
+export const DEFAULT_BILL_CATEGORIES: CategoryItem[] = [
+  { id: '1', name: 'Flex', itemName: 'Flex Banner', description: 'Flex printing', rate: 0 },
+  { id: '2', name: 'Photo Frame', itemName: 'Photo Frame', description: 'Photo frame printing', rate: 0 },
+  { id: '3', name: 'LED Board', itemName: 'LED Board', description: 'LED board design & print', rate: 0 },
+  { id: '4', name: 'Offset Printing', itemName: 'Offset Print', description: 'Offset printing work', rate: 0 },
+  { id: '5', name: 'Visiting Card', itemName: 'Visiting Card', description: 'Visiting card printing', rate: 0 }
+];
+
+export const DEFAULT_EXPENSE_CATEGORIES: ExpenseCategory[] = [
+  { id: '1', name: 'Raw Material', type: 'direct' },
+  { id: '2', name: 'Labour', type: 'direct' },
+  { id: '3', name: 'Rent', type: 'fixed' },
+  { id: '4', name: 'Electricity', type: 'fixed' },
+  { id: '5', name: 'Machine Depreciation', type: 'depreciation' },
+  { id: '6', name: 'Ink & Consumables', type: 'printing' }
+];
+
 export const CATEGORIES = ['Flex', 'Photo Frame', 'LED Board', 'Offset Printing', 'Visiting Card'];
 
 export const TERMS = [

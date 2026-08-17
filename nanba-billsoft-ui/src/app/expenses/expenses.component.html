@@ -64,19 +64,31 @@
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label>Category</label>
-          <select class="form-control" [(ngModel)]="form.category">
+          <label>Expense Type</label>
+          <select class="form-control" [(ngModel)]="form.category" (ngModelChange)="form.name = ''">
             <option value="direct">Direct Expenses</option>
             <option value="fixed">Fixed Expenses</option>
             <option value="depreciation">Depreciation</option>
             <option value="printing">Printing Expenses</option>
           </select>
         </div>
-        <div class="grid-2">
+        <div class="form-group">
+          <label>Category Name *</label>
+          <select class="form-control" [(ngModel)]="form.name">
+            <option value="">-- Select category --</option>
+            @for (c of filteredMasterCategories(); track c.id) {
+              <option [value]="c.name">{{c.name}}</option>
+            }
+            <option value="__custom__">Other (type below)</option>
+          </select>
+        </div>
+        @if (form.name === '__custom__') {
           <div class="form-group">
-            <label>Expense Name *</label>
-            <input class="form-control" [(ngModel)]="form.name" placeholder="e.g. Flex material">
+            <label>Custom Name *</label>
+            <input class="form-control" [(ngModel)]="customExpenseName" placeholder="Enter expense name" />
           </div>
+        }
+        <div class="grid-2">
           <div class="form-group">
             <label>Amount (₹) *</label>
             <input type="number" class="form-control" [(ngModel)]="form.amount" min="0">

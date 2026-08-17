@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DataService } from '../data.service';
-import { Bill, BillItem, Customer, CATEGORIES, TERMS } from '../models';
+import { Bill, BillItem, Customer, CategoryItem, ItemMaster, TERMS } from '../models';
 
 declare const jspdf: any;
 declare const html2canvas: any;
@@ -23,9 +23,11 @@ export class BillsComponent implements OnInit {
   statusFilter = '';
   viewBill: Bill | null = null;
   customers: Customer[] = [];
-  categories = CATEGORIES;
+  billCategories: CategoryItem[] = [];
+  itemsForCategory: Record<string, ItemMaster[]> = {}; // categoryId -> items
   terms = TERMS;
   showPaymentModal = false;
+  showShareMenu = false;
   paymentAmount = 0;
   paymentType: any = 'advance';
   paymentNote = '';
@@ -42,6 +44,10 @@ export class BillsComponent implements OnInit {
 
   ngOnInit() {
     this.customers = this.ds.getCustomers();
+    this.billCategories = this.ds.getBillCategories();
+    this.billCategories.forEach(c => {
+      this.itemsForCategory[c.id] = this.ds.getItemsByCategory(c.id);
+    });
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');
       if (!id) {
@@ -106,14 +112,39 @@ export class BillsComponent implements OnInit {
   addItem() {
     this.items.push({
       id: Date.now().toString() + Math.random(),
-      category: CATEGORIES[0],
-      itemName: '',
-      description: '',
+      category: this.billCategories[0]?.name || '',
+      itemName: this.billCategories[0]?.itemName || '',
+      description: this.billCategories[0]?.description || '',
       quantity: 1,
-      rate: 0,
+      rate: this.billCategories[0]?.rate || 0,
       discount: 0,
-      amount: 0
+      amount: this.billCategories[0]?.rate || 0
     });
+    this.calcTotals();
+  }
+
+  onCategoryChange(item: BillItem) {
+    // clear item selection when category changes
+    item.itemName = '';
+    item.description = '';
+    item.rate = 0;
+    item.amount = 0;
+    this.calcTotals();
+  }
+
+  getItemsForBillItem(item: BillItem): ItemMaster[] {
+    const cat = this.billCategories.find(c => c.name === item.category);
+    return cat ? (this.itemsForCategory[cat.id] || []) : [];
+  }
+
+  onItemSelect(billItem: BillItem) {
+    const items = this.getItemsForBillItem(billItem);
+    const master = items.find(i => i.itemName === billItem.itemName);
+    if (master) {
+      billItem.description = master.description;
+      billItem.rate = master.rate;
+      this.calcItem(billItem);
+    }
   }
 
   removeItem(i: number) {
@@ -230,6 +261,61 @@ export class BillsComponent implements OnInit {
   }
 
   printBill() { window.print(); }
+
+  toggleShareMenu(e: Event) {
+    e.stopPropagation();
+    this.showShareMenu = !this.showShareMenu;
+    if (this.showShareMenu) {
+      const close = () => { this.showShareMenu = false; document.removeEventListener('click', close); };
+      setTimeout(() => document.addEventListener('click', close), 0);
+    }
+  }
+
+  shareWhatsApp() {
+    this.showShareMenu = false;
+    if (!this.viewBill) return;
+    const b = this.viewBill;
+    const msg = `*${b.billNumber}* — Nanba Printing & Design%0A` +
+      `Customer: ${b.customerName}%0A` +
+      `Date: ${b.billDate}%0A` +
+      `Total: ₹${b.totalAmount}%0A` +
+      `Paid: ₹${b.paidAmount}%0A` +
+      `Balance: ₹${b.balanceAmount}%0A` +
+      `Status: ${b.paymentStatus}`;
+    const phone = (b.customerWhatsapp || b.customerMobile || '').replace(/\D/g, '');
+    const url = phone ? `https://wa.me/91${phone}?text=${msg}` : `https://wa.me/?text=${msg}`;
+    window.open(url, '_blank');
+  }
+
+  async shareImage() {
+    this.showShareMenu = false;
+    const el = document.getElementById('bill-print');
+    if (!el) return;
+    const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+    canvas.toBlob(async (blob: Blob | null) => {
+      if (!blob) return;
+      const file = new File([blob], `${this.viewBill?.billNumber}.png`, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: `Bill ${this.viewBill?.billNumber}`,
+          text: `Bill from Nanba Printing & Design`,
+          files: [file]
+        });
+      } else {
+        // fallback: download the image
+        const link = document.createElement('a');
+        link.download = `${this.viewBill?.billNumber}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      }
+    }, 'image/png');
+  }
+
+  copyBillLink() {
+    this.showShareMenu = false;
+    const url = `${window.location.origin}/bills/${this.viewBill?.id}`;
+    navigator.clipboard.writeText(url).then(() => alert('Bill link copied!'));
+  }
 
   getStatusClass(status: string): string {
     const map: any = {

@@ -16,16 +16,21 @@ declare const Chart: any;
 export class ReportsComponent implements OnInit, AfterViewInit {
   @ViewChild('monthlyChart') monthlyChartRef!: ElementRef;
   @ViewChild('expenseChart') expenseChartRef!: ElementRef;
+  @ViewChild('yearlyChart') yearlyChartRef!: ElementRef;
 
   bills: Bill[] = [];
   expenses: Expense[] = [];
   activeReport = 'daily';
   filterMonth = new Date().toISOString().substring(0, 7);
   filterDate = new Date().toISOString().split('T')[0];
+  filterYear = new Date().getFullYear();
+  availableYears: number[] = [];
+  private yearlyChartInstance: any = null;
 
   reports = [
     { key: 'daily', label: 'Daily Sales' },
     { key: 'monthly', label: 'Monthly Sales' },
+    { key: 'yearly', label: 'Yearly Report' },
     { key: 'category', label: 'Category-wise' },
     { key: 'customer', label: 'Customer-wise' },
     { key: 'expense', label: 'Expense Report' },
@@ -38,10 +43,24 @@ export class ReportsComponent implements OnInit, AfterViewInit {
   ngOnInit() {
     this.bills = this.ds.getBills();
     this.expenses = this.ds.getExpenses();
+    this.buildAvailableYears();
   }
 
   ngAfterViewInit() {
     setTimeout(() => { this.renderCharts(); }, 100);
+  }
+
+  buildAvailableYears() {
+    const years = new Set<number>();
+    years.add(new Date().getFullYear());
+    this.bills.forEach(b => years.add(+b.billDate.substring(0, 4)));
+    this.expenses.forEach(e => years.add(+e.date.substring(0, 4)));
+    this.availableYears = Array.from(years).sort((a, b) => b - a);
+  }
+
+  setReport(key: string) {
+    this.activeReport = key;
+    if (key === 'yearly') setTimeout(() => this.renderYearlyChart(), 100);
   }
 
   renderCharts() {
@@ -63,6 +82,97 @@ export class ReportsComponent implements OnInit, AfterViewInit {
         options: { responsive: true, plugins: { legend: { display: false } } }
       });
     }
+  }
+
+  renderYearlyChart() {
+    if (!this.yearlyChartRef) return;
+    if (this.yearlyChartInstance) { this.yearlyChartInstance.destroy(); }
+    const months = this.yearlyMonthlyData;
+    const labels = months.map(m => m.monthLabel);
+    this.yearlyChartInstance = new Chart(this.yearlyChartRef.nativeElement, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Sales (₹)', data: months.map(m => m.sales), backgroundColor: 'rgba(245,158,11,0.85)', borderRadius: 6 },
+          { label: 'Expenses (₹)', data: months.map(m => m.expenses), backgroundColor: 'rgba(239,68,68,0.75)', borderRadius: 6 },
+          { label: 'Profit (₹)', data: months.map(m => m.profit), backgroundColor: 'rgba(22,163,74,0.75)', borderRadius: 6 }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  }
+
+  onYearChange() {
+    setTimeout(() => this.renderYearlyChart(), 50);
+  }
+
+  get yearlyBills() { return this.bills.filter(b => b.billDate.startsWith(String(this.filterYear))); }
+  get yearlyExpenses() { return this.expenses.filter(e => e.date.startsWith(String(this.filterYear))); }
+
+  get yearlySales() { return this.yearlyBills.reduce((s, b) => s + b.totalAmount, 0); }
+  get yearlyExpenseTotal() { return this.yearlyExpenses.reduce((s, e) => s + e.amount, 0); }
+  get yearlyProfit() { return this.yearlySales - this.yearlyExpenseTotal; }
+  get yearlyPaidAmount() { return this.yearlyBills.reduce((s, b) => s + b.paidAmount, 0); }
+  get yearlyBalanceAmount() { return this.yearlyBills.reduce((s, b) => s + b.balanceAmount, 0); }
+
+  get yearlyMonthlyData() {
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return Array.from({ length: 12 }, (_, i) => {
+      const mm = String(i + 1).padStart(2, '0');
+      const prefix = `${this.filterYear}-${mm}`;
+      const mBills = this.yearlyBills.filter(b => b.billDate.startsWith(prefix));
+      const mExp = this.yearlyExpenses.filter(e => e.date.startsWith(prefix));
+      const sales = mBills.reduce((s, b) => s + b.totalAmount, 0);
+      const expenses = mExp.reduce((s, e) => s + e.amount, 0);
+      return {
+        monthLabel: MONTHS[i],
+        month: prefix,
+        bills: mBills.length,
+        sales,
+        expenses,
+        profit: sales - expenses,
+        paid: mBills.reduce((s, b) => s + b.paidAmount, 0),
+        balance: mBills.reduce((s, b) => s + b.balanceAmount, 0)
+      };
+    });
+  }
+
+  get yearlyCategoryData() {
+    const map: Record<string, { count: number; amount: number }> = {};
+    this.yearlyBills.forEach(b => b.items.forEach(i => {
+      if (!map[i.category]) map[i.category] = { count: 0, amount: 0 };
+      map[i.category].count++;
+      map[i.category].amount += i.amount;
+    }));
+    return Object.entries(map).map(([cat, v]) => ({ category: cat, ...v }))
+      .sort((a, b) => b.amount - a.amount);
+  }
+
+  printYearlyReport() { window.print(); }
+
+  async shareYearlyReport() {
+    const el = document.getElementById('yearly-report-print');
+    if (!el) return;
+    const fn = (window as any).html2canvas;
+    if (!fn) return;
+    const canvas = await fn(el, { scale: 2 });
+    canvas.toBlob(async (blob: Blob | null) => {
+      if (!blob) return;
+      const file = new File([blob], `Yearly-Report-${this.filterYear}.png`, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ title: `Yearly Report ${this.filterYear}`, files: [file] });
+      } else {
+        const link = document.createElement('a');
+        link.download = `Yearly-Report-${this.filterYear}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      }
+    }, 'image/png');
   }
 
   get dailyBills() { return this.bills.filter(b => b.billDate === this.filterDate); }

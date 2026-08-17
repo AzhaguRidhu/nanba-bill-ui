@@ -1,0 +1,272 @@
+<div class="page-header">
+  <h2><i class="fa-solid fa-layer-group"></i> Masters</h2>
+</div>
+
+<!-- Tabs -->
+<div class="tab-bar">
+  <button class="tab-btn" [class.active]="activeTab === 'bill'" (click)="activeTab = 'bill'">
+    <i class="fa-solid fa-tags"></i> Bill Categories
+  </button>
+  <button class="tab-btn" [class.active]="activeTab === 'items'" (click)="activeTab = 'items'">
+    <i class="fa-solid fa-boxes-stacked"></i> Item Master
+    @if (selectedCategory) { <span class="cat-chip">{{selectedCategory.name}}</span> }
+  </button>
+  <button class="tab-btn" [class.active]="activeTab === 'expense'" (click)="activeTab = 'expense'">
+    <i class="fa-solid fa-wallet"></i> Expense Categories
+  </button>
+</div>
+
+<!-- ===== BILL CATEGORIES ===== -->
+@if (activeTab === 'bill') {
+  <div class="card">
+    <div class="card-toolbar">
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input class="form-control" [(ngModel)]="billSearch" placeholder="Search categories..." />
+          @if (billSearch) {
+            <button class="clear-btn" (click)="billSearch = ''"><i class="fa-solid fa-xmark"></i></button>
+          }
+        </div>
+        <span class="card-count">{{filteredBillCategories.length}} / {{billCategories.length}}</span>
+      </div>
+      <button class="btn btn-primary btn-sm" (click)="openBillForm()">
+        <i class="fa-solid fa-plus"></i> Add Category
+      </button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Category Name</th>
+            <th>Items Count</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of filteredBillCategories; track c.id) {
+            <tr>
+              <td>
+                <button class="cat-link" (click)="selectCategory(c)">
+                  <i class="fa-solid fa-folder"></i> {{c.name}}
+                </button>
+              </td>
+              <td>
+                <span class="badge badge-info">{{ds.getItemsByCategory(c.id).length}} items</span>
+              </td>
+              <td class="text-right">
+                <button class="btn btn-secondary btn-sm" (click)="selectCategory(c)" title="Manage Items">
+                  <i class="fa-solid fa-boxes-stacked"></i> Items
+                </button>
+                <button class="btn btn-info btn-sm" style="margin-left:6px" (click)="openBillForm(c)">
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" style="margin-left:6px" (click)="deleteBillCat(c.id)">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}
+
+<!-- ===== ITEM MASTER ===== -->
+@if (activeTab === 'items') {
+  <!-- Category selector -->
+  <div class="cat-selector-bar">
+    @for (c of billCategories; track c.id) {
+      <button class="cat-pill" [class.active]="selectedCategory?.id === c.id" (click)="selectCategory(c)">
+        {{c.name}}
+      </button>
+    }
+  </div>
+
+  @if (selectedCategory) {
+    <div class="card">
+      <div class="card-toolbar">
+        <div class="filter-bar">
+          <div class="search-wrap">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input class="form-control" [(ngModel)]="itemSearch" placeholder="Search items..." />
+            @if (itemSearch) {
+              <button class="clear-btn" (click)="itemSearch = ''"><i class="fa-solid fa-xmark"></i></button>
+            }
+          </div>
+          <span class="card-count">{{filteredCategoryItems.length}} / {{categoryItems.length}}</span>
+        </div>
+        <button class="btn btn-primary btn-sm" (click)="openItemForm()">
+          <i class="fa-solid fa-plus"></i> Add Item
+        </button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Item Name</th>
+              <th>Description</th>
+              <th>Rate (₹)</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of filteredCategoryItems; track item.id; let i = $index) {
+              <tr>
+                <td>{{i + 1}}</td>
+                <td><strong>{{item.itemName}}</strong></td>
+                <td>{{item.description || '—'}}</td>
+                <td>₹{{item.rate | number:'1.0-0'}}</td>
+                <td class="text-right">
+                  <button class="btn btn-info btn-sm" (click)="openItemForm(item)"><i class="fa-solid fa-pen"></i></button>
+                  <button class="btn btn-danger btn-sm" style="margin-left:6px" (click)="deleteItem(item.id)"><i class="fa-solid fa-trash"></i></button>
+                </td>
+              </tr>
+            }
+            @if (!categoryItems.length) {
+              <tr><td colspan="5" class="text-center" style="color:#94a3b8;padding:24px">No items yet. Click "Add Item" to start.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  } @else {
+    <div class="empty-state"><i class="fa-solid fa-hand-pointer"></i><p>Select a category above to manage its items</p></div>
+  }
+}
+
+<!-- ===== EXPENSE CATEGORIES ===== -->
+@if (activeTab === 'expense') {
+  <div class="card">
+    <div class="card-toolbar">
+      <div class="filter-bar">
+        <div class="search-wrap">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input class="form-control" [(ngModel)]="expenseSearch" placeholder="Search categories..." />
+          @if (expenseSearch) {
+            <button class="clear-btn" (click)="expenseSearch = ''"><i class="fa-solid fa-xmark"></i></button>
+          }
+        </div>
+        <select class="form-control filter-select" [(ngModel)]="expenseTypeFilter">
+          <option value="">All Types</option>
+          <option value="direct">Direct</option>
+          <option value="fixed">Fixed</option>
+          <option value="depreciation">Depreciation</option>
+          <option value="printing">Printing</option>
+        </select>
+        <span class="card-count">{{filteredExpenseCategories.length}} / {{expenseCategories.length}}</span>
+      </div>
+      <button class="btn btn-primary btn-sm" (click)="openExpenseForm()">
+        <i class="fa-solid fa-plus"></i> Add Category
+      </button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Category Name</th>
+            <th>Type</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of filteredExpenseCategories; track c.id) {
+            <tr>
+              <td><strong>{{c.name}}</strong></td>
+              <td><span class="badge badge-secondary">{{expenseTypeLabel(c.type)}}</span></td>
+              <td class="text-right">
+                <button class="btn btn-info btn-sm" (click)="openExpenseForm(c)"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn btn-danger btn-sm" style="margin-left:6px" (click)="deleteExpenseCat(c.id)"><i class="fa-solid fa-trash"></i></button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}
+
+<!-- Bill Category Modal -->
+@if (showBillModal) {
+  <div class="modal-overlay" (click)="showBillModal = false">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{editBillCat ? 'Edit' : 'Add'}} Bill Category</h3>
+        <button class="close-btn" (click)="showBillModal = false"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Category Name *</label>
+          <input class="form-control" [(ngModel)]="billForm.name" placeholder="e.g. Flex, LED Board" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="showBillModal = false">Cancel</button>
+        <button class="btn btn-primary" (click)="saveBillCat()"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Item Master Modal -->
+@if (showItemModal) {
+  <div class="modal-overlay" (click)="showItemModal = false">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{editItem ? 'Edit' : 'Add'}} Item — <span style="color:#f59e0b">{{selectedCategory?.name}}</span></h3>
+        <button class="close-btn" (click)="showItemModal = false"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Item Name *</label>
+          <input class="form-control" [(ngModel)]="itemForm.itemName" placeholder="e.g. 12*8, 6*4, A4 Size" />
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <input class="form-control" [(ngModel)]="itemForm.description" placeholder="e.g. 12x8 Flex Banner printing" />
+        </div>
+        <div class="form-group">
+          <label>Rate (₹)</label>
+          <input type="number" class="form-control" [(ngModel)]="itemForm.rate" min="0" placeholder="0" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="showItemModal = false">Cancel</button>
+        <button class="btn btn-primary" (click)="saveItem()"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Expense Category Modal -->
+@if (showExpenseModal) {
+  <div class="modal-overlay" (click)="showExpenseModal = false">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{editExpenseCat ? 'Edit' : 'Add'}} Expense Category</h3>
+        <button class="close-btn" (click)="showExpenseModal = false"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Category Name *</label>
+          <input class="form-control" [(ngModel)]="expenseForm.name" placeholder="e.g. Rent, Labour" />
+        </div>
+        <div class="form-group">
+          <label>Expense Type *</label>
+          <select class="form-control" [(ngModel)]="expenseForm.type">
+            <option value="direct">Direct Expenses</option>
+            <option value="fixed">Fixed Expenses</option>
+            <option value="depreciation">Depreciation</option>
+            <option value="printing">Printing Expenses</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="showExpenseModal = false">Cancel</button>
+        <button class="btn btn-primary" (click)="saveExpenseCat()"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+      </div>
+    </div>
+  </div>
+}

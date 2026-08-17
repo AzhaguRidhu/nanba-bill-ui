@@ -1,7 +1,7 @@
-import { Component } from '@angular/core';
-import { DatePipe } from '@angular/common';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
-import { CommonModule } from '@angular/common';
+import { Component, computed } from '@angular/core';
+import { DatePipe, CommonModule } from '@angular/common';
+import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
+import { AuthService } from '../auth.service';
 
 @Component({
   selector: 'app-layout',
@@ -11,18 +11,38 @@ import { CommonModule } from '@angular/common';
   styleUrl: './layout.component.css'
 })
 export class LayoutComponent {
-  sidebarOpen = true;
+  sidebarOpen = window.innerWidth > 768;
+  today = new Date();
 
-  navItems = [
-    { path: '/dashboard', icon: 'fa-gauge-high', label: 'Dashboard' },
-    { path: '/customers', icon: 'fa-users', label: 'Customers' },
-    { path: '/bills', icon: 'fa-file-invoice', label: 'Bills' },
-    { path: '/payments', icon: 'fa-credit-card', label: 'Payments' },
-    { path: '/expenses', icon: 'fa-wallet', label: 'Expenses' },
-    { path: '/remaining', icon: 'fa-clock', label: 'Remaining' },
-    { path: '/reports', icon: 'fa-chart-bar', label: 'Reports' }
+  private allNavItems = [
+    { path: '/dashboard', icon: 'fa-gauge-high', label: 'Dashboard', superOnly: false },
+    { path: '/customers', icon: 'fa-users', label: 'Customers', superOnly: true },
+    { path: '/bills', icon: 'fa-file-invoice', label: 'Bills', superOnly: false },
+    { path: '/payments', icon: 'fa-credit-card', label: 'Payments', superOnly: true },
+    { path: '/expenses', icon: 'fa-wallet', label: 'Expenses', superOnly: true },
+    { path: '/remaining', icon: 'fa-clock', label: 'Remaining', superOnly: true },
+    { path: '/reports', icon: 'fa-chart-bar', label: 'Reports', superOnly: true },
+    { path: '/users', icon: 'fa-users-gear', label: 'Users', superOnly: true },
+    { path: '/masters', icon: 'fa-layer-group', label: 'Masters', superOnly: true }
   ];
 
-  today = new Date();
+  navItems = computed(() => {
+    const isSuper = this.auth.isSuper();
+    return this.allNavItems.filter(item => !item.superOnly || isSuper);
+  });
+
+  currentUser = computed(() => this.auth.currentUser());
+
+  constructor(private auth: AuthService, private router: Router) {}
+
   toggleSidebar() { this.sidebarOpen = !this.sidebarOpen; }
+
+  closeSidebarOnMobile() {
+    if (window.innerWidth <= 768) this.sidebarOpen = false;
+  }
+
+  logout() {
+    this.auth.logout();
+    this.router.navigate(['/login']);
+  }
 }

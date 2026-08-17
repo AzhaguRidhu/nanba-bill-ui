@@ -233,6 +233,59 @@
 }
 .signature-label { font-size: 0.78rem; color: #64748b; }
 
+/* Share button & dropdown */
+.share-wrap {
+  position: relative;
+}
+
+.btn-share {
+  background: #22c55e;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+.btn-share:hover { background: #16a34a; }
+
+.share-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  min-width: 180px;
+  z-index: 500;
+  overflow: hidden;
+}
+
+.share-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #374151;
+  text-align: left;
+  transition: background 0.15s;
+}
+.share-item:hover { background: #f1f5f9; }
+.share-item i.fa-whatsapp { color: #22c55e; font-size: 1rem; }
+.share-item i.fa-image { color: #2563eb; font-size: 1rem; }
+.share-item i.fa-link { color: #f59e0b; font-size: 1rem; }
+
 /* Print */
 @media print {
   .no-print { display: none !important; }

@@ -4,7 +4,7 @@
 
 <div class="report-tabs mb-16">
   @for (r of reports; track r.key) {
-    <button class="tab-btn" [class.active]="activeReport === r.key" (click)="activeReport = r.key">{{r.label}}</button>
+    <button class="tab-btn" [class.active]="activeReport === r.key" (click)="setReport(r.key)">{{r.label}}</button>
   }
 </div>
 
@@ -68,6 +68,139 @@
         </table>
       </div>
     } @else { <div class="empty-state"><i class="fa-solid fa-calendar"></i><p>No bills this month</p></div> }
+  </div>
+}
+
+<!-- Yearly Report -->
+@if (activeReport === 'yearly') {
+  <div id="yearly-report-print">
+    <!-- Header -->
+    <div class="yearly-header no-print-hide">
+      <div class="flex items-center gap-8 flex-wrap">
+        <label style="font-weight:600">Year:</label>
+        <select class="form-control" style="max-width:120px" [(ngModel)]="filterYear" (ngModelChange)="onYearChange()">
+          @for (y of availableYears; track y) { <option [value]="y">{{y}}</option> }
+        </select>
+      </div>
+      <div class="flex gap-8">
+        <button class="btn btn-secondary btn-sm" (click)="printYearlyReport()">
+          <i class="fa-solid fa-print"></i> Print
+        </button>
+        <button class="btn btn-share btn-sm" (click)="shareYearlyReport()">
+          <i class="fa-solid fa-share-nodes"></i> Share
+        </button>
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid-4 mb-16">
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#dbeafe"><i class="fa-solid fa-indian-rupee-sign" style="color:#2563eb"></i></div>
+        <div class="stat-info"><div class="label">Total Sales</div><div class="value">₹{{yearlySales | number:'1.0-0'}}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#dcfce7"><i class="fa-solid fa-circle-check" style="color:#16a34a"></i></div>
+        <div class="stat-info"><div class="label">Amount Collected</div><div class="value" style="color:#16a34a">₹{{yearlyPaidAmount | number:'1.0-0'}}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background:#fee2e2"><i class="fa-solid fa-wallet" style="color:#dc2626"></i></div>
+        <div class="stat-info"><div class="label">Total Expenses</div><div class="value" style="color:#dc2626">₹{{yearlyExpenseTotal | number:'1.0-0'}}</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" [style.background]="yearlyProfit >= 0 ? '#dcfce7' : '#fee2e2'">
+          <i class="fa-solid fa-chart-line" [style.color]="yearlyProfit >= 0 ? '#16a34a' : '#dc2626'"></i>
+        </div>
+        <div class="stat-info">
+          <div class="label">Net Profit / Loss</div>
+          <div class="value" [class.green]="yearlyProfit >= 0" [class.red]="yearlyProfit < 0">₹{{yearlyProfit | number:'1.0-0'}}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="card mb-16">
+      <div class="yearly-chart-title">Monthly Sales vs Expenses vs Profit — {{filterYear}}</div>
+      <canvas #yearlyChart height="100"></canvas>
+    </div>
+
+    <!-- Month-by-month table -->
+    <div class="card mb-16">
+      <div class="card-toolbar">
+        <strong>Month-wise Breakdown — {{filterYear}}</strong>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Month</th>
+              <th>Bills</th>
+              <th>Sales (₹)</th>
+              <th>Collected (₹)</th>
+              <th>Balance (₹)</th>
+              <th>Expenses (₹)</th>
+              <th>Profit (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (m of yearlyMonthlyData; track m.month) {
+              <tr [class.row-active]="m.sales > 0 || m.expenses > 0">
+                <td><strong>{{m.monthLabel}}</strong></td>
+                <td>{{m.bills || '—'}}</td>
+                <td>{{m.sales > 0 ? ('₹' + (m.sales | number:'1.0-0')) : '—'}}</td>
+                <td style="color:#16a34a">{{m.paid > 0 ? ('₹' + (m.paid | number:'1.0-0')) : '—'}}</td>
+                <td style="color:#dc2626">{{m.balance > 0 ? ('₹' + (m.balance | number:'1.0-0')) : '—'}}</td>
+                <td style="color:#ef4444">{{m.expenses > 0 ? ('₹' + (m.expenses | number:'1.0-0')) : '—'}}</td>
+                <td>
+                  @if (m.sales > 0 || m.expenses > 0) {
+                    <span [class.green]="m.profit >= 0" [class.red]="m.profit < 0" style="font-weight:700">
+                      ₹{{m.profit | number:'1.0-0'}}
+                    </span>
+                  } @else { <span>—</span> }
+                </td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr class="totals-row">
+              <td><strong>Total</strong></td>
+              <td><strong>{{yearlyBills.length}}</strong></td>
+              <td><strong>₹{{yearlySales | number:'1.0-0'}}</strong></td>
+              <td style="color:#16a34a"><strong>₹{{yearlyPaidAmount | number:'1.0-0'}}</strong></td>
+              <td style="color:#dc2626"><strong>₹{{yearlyBalanceAmount | number:'1.0-0'}}</strong></td>
+              <td style="color:#ef4444"><strong>₹{{yearlyExpenseTotal | number:'1.0-0'}}</strong></td>
+              <td><strong [class.green]="yearlyProfit >= 0" [class.red]="yearlyProfit < 0">₹{{yearlyProfit | number:'1.0-0'}}</strong></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- Category-wise yearly -->
+    @if (yearlyCategoryData.length) {
+      <div class="card">
+        <div class="card-toolbar"><strong>Category-wise Sales — {{filterYear}}</strong></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Category</th><th>Items Sold</th><th>Total Amount (₹)</th><th>Share %</th></tr></thead>
+            <tbody>
+              @for (c of yearlyCategoryData; track c.category) {
+                <tr>
+                  <td><strong>{{c.category}}</strong></td>
+                  <td>{{c.count}}</td>
+                  <td>₹{{c.amount | number:'1.0-0'}}</td>
+                  <td>
+                    <div class="share-bar-wrap">
+                      <div class="share-bar" [style.width]="(yearlySales > 0 ? (c.amount / yearlySales * 100) : 0) + '%'"></div>
+                      <span>{{yearlySales > 0 ? (c.amount / yearlySales * 100 | number:'1.1-1') : 0}}%</span>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
   </div>
 }
 
