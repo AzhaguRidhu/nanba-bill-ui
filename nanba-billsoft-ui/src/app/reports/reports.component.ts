@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, Pipe, PipeTransform } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DataService } from '../data.service';
@@ -6,10 +6,17 @@ import { Bill, Expense } from '../models';
 
 declare const Chart: any;
 
+@Pipe({ name: 'sumProp', standalone: true })
+export class SumPropPipe implements PipeTransform {
+  transform(items: any[], prop: string): number {
+    return (items || []).reduce((s: number, i: any) => s + (i[prop] || 0), 0);
+  }
+}
+
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SumPropPipe],
   templateUrl: './reports.component.html',
   styleUrl: './reports.component.css'
 })
@@ -41,6 +48,14 @@ export class ReportsComponent implements OnInit, AfterViewInit {
   constructor(private ds: DataService) {}
 
   ngOnInit() {
+    this.load();
+    this.ds.ready$.subscribe(() => {
+      this.load();
+      this.renderCharts();
+    });
+  }
+
+  load() {
     this.bills = this.ds.getBills();
     this.expenses = this.ds.getExpenses();
     this.buildAvailableYears();
@@ -153,7 +168,42 @@ export class ReportsComponent implements OnInit, AfterViewInit {
       .sort((a, b) => b.amount - a.amount);
   }
 
-  printYearlyReport() { window.print(); }
+  pdfLoading = false;
+  today = new Date();
+
+  private async generatePDF(elementId: string, filename: string) {
+    this.pdfLoading = true;
+    const el = document.getElementById(elementId);
+    if (!el) { this.pdfLoading = false; return; }
+    const h2c = (window as any).html2canvas;
+    const jpdf = (window as any).jspdf;
+    if (!h2c || !jpdf) { this.pdfLoading = false; return; }
+    const canvas = await h2c(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = jpdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgW = pageW;
+    const imgH = (canvas.height * imgW) / canvas.width;
+    let y = 0;
+    let remaining = imgH;
+    while (remaining > 0) {
+      pdf.addImage(imgData, 'PNG', 0, y === 0 ? 0 : -(imgH - remaining), imgW, imgH);
+      remaining -= pageH;
+      if (remaining > 0) { pdf.addPage(); y += pageH; }
+    }
+    pdf.save(filename);
+    this.pdfLoading = false;
+  }
+
+  downloadMonthlyPDF() {
+    this.generatePDF('monthly-report-print', `Monthly-Report-${this.filterMonth}.pdf`);
+  }
+
+  downloadYearlyPDF() {
+    this.generatePDF('yearly-report-print', `Yearly-Report-${this.filterYear}.pdf`);
+  }
 
   async shareYearlyReport() {
     const el = document.getElementById('yearly-report-print');

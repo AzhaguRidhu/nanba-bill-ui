@@ -22,8 +22,13 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   constructor(public ds: DataService) {}
 
   ngOnInit() {
+    this.load();
+    this.ds.ready$.subscribe(() => this.load());
+  }
+
+  load() {
     this.stats = this.ds.getDashboardStats();
-    this.recentBills = this.ds.getBills().slice(-5).reverse();
+    this.recentBills = [...this.ds.getBills()].slice(-5).reverse();
   }
 
   ngAfterViewInit() {

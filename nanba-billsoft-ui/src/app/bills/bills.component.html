@@ -195,7 +195,10 @@
     <h2><i class="fa-solid fa-file-invoice"></i> {{viewBill.billNumber}}</h2>
     <div class="flex gap-8 flex-wrap">
       <button class="btn btn-success" (click)="openPayment()"><i class="fa-solid fa-plus"></i> Add Payment</button>
-      <button class="btn btn-primary" (click)="downloadPDF()"><i class="fa-solid fa-file-pdf"></i> PDF</button>
+      <button class="btn btn-primary" (click)="downloadPDF()" [disabled]="pdfLoading">
+        @if (pdfLoading) { <i class="fa-solid fa-spinner fa-spin"></i> } @else { <i class="fa-solid fa-file-pdf"></i> }
+        PDF
+      </button>
       <button class="btn btn-info" (click)="downloadJPEG()"><i class="fa-solid fa-image"></i> JPEG</button>
       <button class="btn btn-secondary" (click)="printBill()"><i class="fa-solid fa-print"></i> Print</button>
       <div class="share-wrap">

@@ -28,7 +28,9 @@ export class UsersComponent implements OnInit {
     this.load();
   }
 
-  load() { this.users = this.auth.getAllUsers(); }
+  load() {
+    this.auth.getAllUsers().subscribe({ next: u => this.users = u, error: () => {} });
+  }
 
   openForm(user?: AppUser) {
     this.editUser = user ?? null;
@@ -56,15 +58,16 @@ export class UsersComponent implements OnInit {
         role: this.form.role,
         password: this.form.password.trim() || this.editUser.password
       };
-      this.auth.updateUser(updated);
+      this.auth.updateUser(updated).subscribe({ next: () => { this.closeForm(); this.load(); }, error: () => {} });
     } else {
-      this.auth.createUser({ name: this.form.name, username: this.form.username, password: this.form.password, role: this.form.role });
+      this.auth.createUser({ name: this.form.name, username: this.form.username, password: this.form.password, role: this.form.role })
+        .subscribe({ next: () => { this.closeForm(); this.load(); }, error: () => {} });
     }
-    this.closeForm();
-    this.load();
   }
 
   deleteUser(id: string) {
-    if (confirm('Delete this user?')) { this.auth.deleteUser(id); this.load(); }
+    if (confirm('Delete this user?')) {
+      this.auth.deleteUser(id).subscribe({ next: () => this.load(), error: () => {} });
+    }
   }
 }

@@ -25,14 +25,13 @@ export class LoginComponent {
   onLogin() {
     this.error = '';
     this.loading = true;
-    setTimeout(() => {
-      const user = this.auth.login(this.username.trim(), this.password);
+    this.auth.login(this.username.trim(), this.password).subscribe(user => {
       this.loading = false;
       if (user) {
         this.router.navigate(['/dashboard']);
       } else {
         this.error = 'Invalid username or password.';
       }
-    }, 400);
+    });
   }
 }

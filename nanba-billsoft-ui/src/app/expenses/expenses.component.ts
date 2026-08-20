@@ -32,7 +32,10 @@ export class ExpensesComponent implements OnInit {
 
   constructor(private ds: DataService) {}
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    this.load();
+    this.ds.ready$.subscribe(() => this.load());
+  }
 
   load() {
     this.expenses = this.ds.getExpenses();

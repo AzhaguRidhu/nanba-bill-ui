@@ -5,9 +5,6 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DataService } from '../data.service';
 import { Bill, BillItem, Customer, CategoryItem, ItemMaster, TERMS } from '../models';
 
-declare const jspdf: any;
-declare const html2canvas: any;
-
 @Component({
   selector: 'app-bills',
   standalone: true,
@@ -43,11 +40,10 @@ export class BillsComponent implements OnInit {
   constructor(private ds: DataService, private route: ActivatedRoute, private router: Router) {}
 
   ngOnInit() {
-    this.customers = this.ds.getCustomers();
-    this.billCategories = this.ds.getBillCategories();
-    this.billCategories.forEach(c => {
-      this.itemsForCategory[c.id] = this.ds.getItemsByCategory(c.id);
-    });
+    this.loadMasterData();
+    // Re-load master data once API resolves so dropdowns are populated
+    this.ds.ready$.subscribe(() => this.loadMasterData());
+
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');
       if (!id) {
@@ -66,6 +62,15 @@ export class BillsComponent implements OnInit {
           this.loadList();
         }
       }
+    });
+  }
+
+  private loadMasterData() {
+    this.customers = this.ds.getCustomers();
+    this.billCategories = this.ds.getBillCategories();
+    this.itemsForCategory = {};
+    this.billCategories.forEach(c => {
+      this.itemsForCategory[c.id] = this.ds.getItemsByCategory(c.id);
     });
   }
 
@@ -237,30 +242,61 @@ export class BillsComponent implements OnInit {
     }
   }
 
+  pdfLoading = false;
+
   async downloadPDF() {
     const el = document.getElementById('bill-print');
     if (!el) return;
-    const canvas = await html2canvas(el, { scale: 2, useCORS: true });
-    const img = canvas.toDataURL('image/png');
-    const { jsPDF } = jspdf;
+    this.pdfLoading = true;
+    const h2c = (window as any).html2canvas;
+    const jpdf = (window as any).jspdf;
+    if (!h2c || !jpdf) { this.pdfLoading = false; return; }
+    const canvas = await h2c(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = jpdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
-    const w = pdf.internal.pageSize.getWidth();
-    const h = (canvas.height * w) / canvas.width;
-    pdf.addImage(img, 'PNG', 0, 0, w, h);
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgW = pageW;
+    const imgH = (canvas.height * imgW) / canvas.width;
+    let heightLeft = imgH;
+    let position = 0;
+    pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH);
+    heightLeft -= pageH;
+    while (heightLeft > 0) {
+      position -= pageH;
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH);
+      heightLeft -= pageH;
+    }
     pdf.save(`${this.viewBill?.billNumber}.pdf`);
+    this.pdfLoading = false;
   }
 
   async downloadJPEG() {
     const el = document.getElementById('bill-print');
     if (!el) return;
-    const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+    const h2c = (window as any).html2canvas;
+    if (!h2c) return;
+    const canvas = await h2c(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
     const link = document.createElement('a');
     link.download = `${this.viewBill?.billNumber}.jpg`;
     link.href = canvas.toDataURL('image/jpeg', 0.95);
     link.click();
   }
 
-  printBill() { window.print(); }
+  printBill() {
+    const el = document.getElementById('bill-print');
+    if (!el) return;
+    const existing = document.getElementById('bill-print-portal');
+    if (existing) existing.remove();
+    const portal = document.createElement('div');
+    portal.id = 'bill-print-portal';
+    portal.innerHTML = `<div class="bill-paper">${el.innerHTML}</div>`;
+    document.body.appendChild(portal);
+    window.print();
+    setTimeout(() => portal.remove(), 1000);
+  }
 
   toggleShareMenu(e: Event) {
     e.stopPropagation();
@@ -291,7 +327,9 @@ export class BillsComponent implements OnInit {
     this.showShareMenu = false;
     const el = document.getElementById('bill-print');
     if (!el) return;
-    const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+    const h2c = (window as any).html2canvas;
+    if (!h2c) return;
+    const canvas = await h2c(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
     canvas.toBlob(async (blob: Blob | null) => {
       if (!blob) return;
       const file = new File([blob], `${this.viewBill?.billNumber}.png`, { type: 'image/png' });

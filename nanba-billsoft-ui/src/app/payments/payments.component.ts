@@ -26,10 +26,13 @@ export class PaymentsComponent implements OnInit {
 
   constructor(private ds: DataService) {}
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    this.load();
+    this.ds.ready$.subscribe(() => this.load());
+  }
 
   load() {
-    this.bills = this.ds.getBills().reverse();
+    this.bills = [...this.ds.getBills()].reverse();
     this.applyFilter();
   }
 

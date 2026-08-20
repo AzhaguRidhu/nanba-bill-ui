@@ -21,10 +21,13 @@ export class RemainingComponent implements OnInit {
 
   constructor(private ds: DataService) {}
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    this.load();
+    this.ds.ready$.subscribe(() => this.load());
+  }
 
   load() {
-    this.bills = this.ds.getBills().filter(b => b.paymentStatus !== 'Fully Paid').reverse();
+    this.bills = [...this.ds.getBills()].filter(b => b.paymentStatus !== 'Fully Paid').reverse();
     this.applyFilter();
   }
 
