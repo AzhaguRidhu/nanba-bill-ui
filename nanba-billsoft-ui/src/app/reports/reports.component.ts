@@ -73,6 +73,7 @@ export class ReportsComponent implements OnInit, AfterViewInit {
   }
 
   load() {
+<<<<<<< HEAD
      this.CurrentyearlyBills();
     this.ds.getExpensesall().subscribe(expenses => {
       this.expenses = [...expenses].sort((a, b) => b.date.localeCompare(a.date));
@@ -96,6 +97,11 @@ this.ds.getBillsByDateRange(fromDate, toDate).subscribe({
   }
 });
 
+=======
+    this.bills = this.ds.getBills();
+    this.expenses = this.ds.getExpenses();
+    this.buildAvailableYears();
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
   }
 
   ngAfterViewInit() {
@@ -215,6 +221,7 @@ this.ds.getBillsByDateRange(fromDate, toDate).subscribe({
     const h2c = (window as any).html2canvas;
     const jpdf = (window as any).jspdf;
     if (!h2c || !jpdf) { this.pdfLoading = false; return; }
+<<<<<<< HEAD
     const excludedElements = Array.from(el.querySelectorAll('.pdf-exclude')) as HTMLElement[];
     const previousDisplays = excludedElements.map(element => element.style.display);
     excludedElements.forEach(element => element.style.display = 'none');
@@ -239,6 +246,25 @@ this.ds.getBillsByDateRange(fromDate, toDate).subscribe({
       excludedElements.forEach((element, index) => element.style.display = previousDisplays[index]);
       this.pdfLoading = false;
     }
+=======
+    const canvas = await h2c(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = jpdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgW = pageW;
+    const imgH = (canvas.height * imgW) / canvas.width;
+    let y = 0;
+    let remaining = imgH;
+    while (remaining > 0) {
+      pdf.addImage(imgData, 'PNG', 0, y === 0 ? 0 : -(imgH - remaining), imgW, imgH);
+      remaining -= pageH;
+      if (remaining > 0) { pdf.addPage(); y += pageH; }
+    }
+    pdf.save(filename);
+    this.pdfLoading = false;
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
   }
 
   downloadMonthlyPDF() {
@@ -248,10 +274,13 @@ this.ds.getBillsByDateRange(fromDate, toDate).subscribe({
   downloadYearlyPDF() {
     this.generatePDF('yearly-report-print', `Yearly-Report-${this.filterYear}.pdf`);
   }
+<<<<<<< HEAD
 
   downloadExpensePDF() {
     this.generatePDF('expense-report-print', `Expense-Report-${this.expenseFromDate || 'all'}-${this.expenseToDate || 'all'}.pdf`);
   }
+=======
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
 
   async shareYearlyReport() {
     const el = document.getElementById('yearly-report-print');

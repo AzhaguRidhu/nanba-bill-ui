@@ -110,16 +110,22 @@ tfoot .totals-row td {
 }
 
 .report-biz-name {
+<<<<<<< HEAD
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+=======
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
   font-size: 1.3rem;
   font-weight: 800;
   color: #1e293b;
   margin-bottom: 4px;
 }
+<<<<<<< HEAD
 .report-brand-icon { width: 26px; height: 26px; object-fit: contain; }
+=======
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
 
 .report-title {
   font-size: 1rem;

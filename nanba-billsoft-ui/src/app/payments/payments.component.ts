@@ -36,22 +36,30 @@ export class PaymentsComponent implements OnInit {
     const past = new Date();
     past.setDate(today.getDate() - 15);
 
+<<<<<<< HEAD
     // format as YYYY-MM-DD for <input type="date">
     this.fromDate = past.toISOString().split('T')[0];
     this.toDate   = today.toISOString().split('T')[0];
   }
 
+=======
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
   ngOnInit() {
     this.load();
     this.ds.ready$.subscribe(() => this.load());
   }
 
   load() {
+<<<<<<< HEAD
 
      this.ds.getBillsFromApi().subscribe(bills => {
       this.bills = [...bills].reverse();
       this.applyFilter();
     });
+=======
+    this.bills = [...this.ds.getBills()].reverse();
+    this.applyFilter();
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
   }
 
   applyFilter() {

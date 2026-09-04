@@ -3,7 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DataService } from '../data.service';
+<<<<<<< HEAD
 import { Bill, BillItem, Customer, CategoryItem, ItemMaster, Payment, TERMS } from '../models';
+=======
+import { Bill, BillItem, Customer, CategoryItem, ItemMaster, TERMS } from '../models';
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
 
 @Component({
   selector: 'app-bills',
@@ -48,6 +52,7 @@ export class BillsComponent implements OnInit {
   constructor(private ds: DataService, private route: ActivatedRoute, private router: Router) {
   const today = new Date();
 
+<<<<<<< HEAD
     // subtract 15 days
     const past = new Date();
     past.setDate(today.getDate() - 15);
@@ -115,6 +120,40 @@ ngOnInit() {
 
 
 
+
+  private loadMasterData() {
+    this.customers = this.ds.getCustomers();
+    this.billCategories = this.ds.getBillCategories();
+    this.itemsForCategory = {};
+    this.billCategories.forEach(c => {
+      this.itemsForCategory[c.id] = this.ds.getItemsByCategory(c.id);
+=======
+  ngOnInit() {
+    this.loadMasterData();
+    // Re-load master data once API resolves so dropdowns are populated
+    this.ds.ready$.subscribe(() => this.loadMasterData());
+
+    this.route.paramMap.subscribe(params => {
+      const id = params.get('id');
+      if (!id) {
+        this.mode = 'list';
+        this.loadList();
+      } else if (id === 'new') {
+        this.mode = 'new';
+        this.initNew();
+      } else {
+        const bill = this.ds.getBillById(id);
+        if (bill) {
+          this.viewBill = { ...bill };
+          this.mode = 'view';
+        } else {
+          this.mode = 'list';
+          this.loadList();
+        }
+      }
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
+    });
+  }
 
   private loadMasterData() {
     this.customers = this.ds.getCustomers();

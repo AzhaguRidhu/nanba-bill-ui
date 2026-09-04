@@ -284,6 +284,7 @@ tr:hover td { background: #f8fafc; }
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+<<<<<<< HEAD
   .nl-badge {
     display: none;
     align-items: center;
@@ -299,4 +300,6 @@ tr:hover td { background: #f8fafc; }
     letter-spacing: 0.01em;
     transition: border-color .2s ease;
 }
+=======
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
 }

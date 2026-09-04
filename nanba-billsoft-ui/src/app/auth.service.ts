@@ -2,7 +2,11 @@ import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap, map, catchError, of } from 'rxjs';
 
+<<<<<<< HEAD
 const BASE = 'https://nanba-bill-api-2.onrender.com/api';
+=======
+const BASE = 'https://localhost:60673/api';
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
 const USERS_URL = `${BASE}/Users`;
 
 export interface AppUser {

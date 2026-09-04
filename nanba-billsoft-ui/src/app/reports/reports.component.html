@@ -54,7 +54,11 @@
 <!-- Monthly Sales -->
 @if (activeReport === 'monthly') {
   <div class="report-action-bar">
+<<<<<<< HEAD
     <div class="flex gap-8 items-center flex-wrap">
+=======
+    <div class="flex gap-8 items-center">
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
       <label style="font-weight:600">Month:</label>
       <input type="month" class="form-control" style="max-width:200px" [(ngModel)]="filterMonth" (ngModelChange)="onMonthlyFilterChange()">
       <input class="form-control" style="max-width:280px" placeholder="Search bill, customer or place" [(ngModel)]="monthlySearch" (input)="onMonthlyFilterChange()">
@@ -70,6 +74,20 @@
       <div class="report-biz-name"><img class="report-brand-icon" src="nanba-digi.ico" alt=""> Nanba Printing &amp; Design</div>
       <div class="report-title">Monthly Sales Report — {{filterMonth}}</div>
     </div>
+<<<<<<< HEAD
+=======
+    <button class="btn btn-primary btn-sm" (click)="downloadMonthlyPDF()" [disabled]="pdfLoading">
+      @if (pdfLoading) { <i class="fa-solid fa-spinner fa-spin"></i> } @else { <i class="fa-solid fa-file-pdf"></i> }
+      Download PDF
+    </button>
+  </div>
+
+  <div id="monthly-report-print" class="report-print-area">
+    <div class="report-print-header">
+      <div class="report-biz-name">🖨️ Nanba Printing &amp; Design</div>
+      <div class="report-title">Monthly Sales Report — {{filterMonth}}</div>
+    </div>
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
     <div class="summary-row">
       <div class="summary-item"><span>Total Bills</span><strong>{{monthlyBills.length}}</strong></div>
       <div class="summary-item"><span>Total Sales</span><strong>₹{{monthlySales | number:'1.0-0'}}</strong></div>
@@ -78,12 +96,21 @@
     </div>
     @if (monthlyBills.length) {
       <table class="report-table">
+<<<<<<< HEAD
         <thead><tr><th>#</th><th>Bill No</th><th>Customer</th><th>Place</th><th>Date</th><th>Amount (₹)</th><th>Paid (₹)</th><th>Balance (₹)</th><th>Status</th></tr></thead>
         <tbody>
           @for (b of monthlyBills; track b.id; let i = $index) {
             <tr>
               <td>{{i + 1}}</td>
               <td>{{b.billNumber}}</td><td>{{b.customerName}}</td><td>{{b.customerPlace}}</td><td>{{b.billDate}}</td>
+=======
+        <thead><tr><th>#</th><th>Bill No</th><th>Customer</th><th>Date</th><th>Amount (₹)</th><th>Paid (₹)</th><th>Balance (₹)</th><th>Status</th></tr></thead>
+        <tbody>
+          @for (b of monthlyBills; track b.id; let i = $index) {
+            <tr>
+              <td>{{i+1}}</td>
+              <td>{{b.billNumber}}</td><td>{{b.customerName}}</td><td>{{b.billDate}}</td>
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
               <td>₹{{b.totalAmount | number:'1.0-0'}}</td>
               <td style="color:#16a34a">₹{{b.paidAmount | number:'1.0-0'}}</td>
               <td style="color:#dc2626">₹{{b.balanceAmount | number:'1.0-0'}}</td>
@@ -93,7 +120,11 @@
         </tbody>
         <tfoot>
           <tr class="totals-row">
+<<<<<<< HEAD
             <td colspan="5"><strong>Total</strong></td>
+=======
+            <td colspan="4"><strong>Total</strong></td>
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
             <td><strong>₹{{monthlySales | number:'1.0-0'}}</strong></td>
             <td style="color:#16a34a"><strong>₹{{monthlyBills | sumProp:'paidAmount' | number:'1.0-0'}}</strong></td>
             <td style="color:#dc2626"><strong>₹{{monthlyBills | sumProp:'balanceAmount' | number:'1.0-0'}}</strong></td>
@@ -101,6 +132,7 @@
           </tr>
         </tfoot>
       </table>
+<<<<<<< HEAD
       <div class="pagination pdf-exclude" aria-label="Monthly report pagination">
         <span>Showing {{monthlyPageStart}}-{{monthlyPageEnd}} of {{monthlyBills.length}}</span>
         <div class="flex gap-8">
@@ -109,6 +141,8 @@
           <button class="btn btn-secondary btn-sm" (click)="goToMonthlyPage(monthlyPage + 1)" [disabled]="monthlyPage === monthlyTotalPages">Next</button>
         </div>
       </div>
+=======
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
     } @else {
       <div class="empty-state"><i class="fa-solid fa-calendar"></i><p>No bills this month</p></div>
     }
@@ -120,7 +154,11 @@
 @if (activeReport === 'yearly') {
   <div id="yearly-report-print" class="report-print-area">
     <div class="report-print-header">
+<<<<<<< HEAD
       <div class="report-biz-name"><img class="report-brand-icon" src="nanba-digi.ico" alt=""> Nanba Printing &amp; Design</div>
+=======
+      <div class="report-biz-name">🖨️ Nanba Printing &amp; Design</div>
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
       <div class="report-title">Yearly Report — {{filterYear}}</div>
     </div>
     <!-- Header -->

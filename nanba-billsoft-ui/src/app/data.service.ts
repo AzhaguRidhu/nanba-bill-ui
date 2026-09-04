@@ -1,14 +1,24 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+<<<<<<< HEAD
 import { forkJoin, Subject, tap } from 'rxjs';
 import { Bill, Customer, Expense, CategoryItem, ExpenseCategory, ItemMaster, DEFAULT_BILL_CATEGORIES, DEFAULT_EXPENSE_CATEGORIES } from './models';
 
 const BASE = 'https://nanba-bill-api-2.onrender.com/api';
+=======
+import { forkJoin, Subject } from 'rxjs';
+import { Bill, Customer, Expense, CategoryItem, ExpenseCategory, ItemMaster, DEFAULT_BILL_CATEGORIES, DEFAULT_EXPENSE_CATEGORIES } from './models';
+
+const BASE = 'https://localhost:60673/api';
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
 
 const API = {
   customers:         `${BASE}/Customers`,
   bills:             `${BASE}/Bills`,
+<<<<<<< HEAD
     billrange:             `${BASE}/Bills/bill-range`,
+=======
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
   expenses:          `${BASE}/Expenses`,
   billCategories:    `${BASE}/bill-categories`,
   expenseCategories: `${BASE}/expense-categories`,
@@ -29,14 +39,18 @@ export class DataService {
    * Emits once after all API data is loaded.
    * Components subscribe to re-run their load() when data arrives.
    */
+<<<<<<< HEAD
   readonly yearReady$ = new Subject<void>();
     readonly expenseReady$ = new Subject<void>();
 
+=======
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
   readonly ready$ = new Subject<void>();
 
   constructor(private http: HttpClient) {
     this.loadAll();
   }
+<<<<<<< HEAD
 getBillByIdFromApi(id: string) {
   return this.http.get<Bill>(`${API.bills}/${id}`);
 }
@@ -97,6 +111,37 @@ getMasterData() {
 
   getCustomers(): Customer[] { return this._customers; }
 
+=======
+
+  private loadAll(): void {
+    forkJoin({
+      customers:         this.http.get<Customer[]>(API.customers),
+      bills:             this.http.get<Bill[]>(API.bills),
+      expenses:          this.http.get<Expense[]>(API.expenses),
+      billCategories:    this.http.get<CategoryItem[]>(API.billCategories),
+      expenseCategories: this.http.get<ExpenseCategory[]>(API.expenseCategories),
+      itemMasters:       this.http.get<ItemMaster[]>(API.itemMasters),
+    }).subscribe({
+      next: res => {
+        this._customers.splice(0, this._customers.length, ...res.customers);
+        this._bills.splice(0, this._bills.length, ...res.bills);
+        this._expenses.splice(0, this._expenses.length, ...res.expenses);
+        if (res.billCategories.length)
+          this._billCategories.splice(0, this._billCategories.length, ...res.billCategories);
+        if (res.expenseCategories.length)
+          this._expenseCategories.splice(0, this._expenseCategories.length, ...res.expenseCategories);
+        this._itemMasters.splice(0, this._itemMasters.length, ...res.itemMasters);
+        this.ready$.next();
+      },
+      error: () => this.ready$.next()
+    });
+  }
+
+  // ── Customers ────────────────────────────────────────────────────────
+
+  getCustomers(): Customer[] { return this._customers; }
+
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
   saveCustomer(c: Customer): void {
     if (!c.id) { c.id = Date.now().toString(); c.createdAt = new Date().toISOString(); }
     const idx = this._customers.findIndex(x => x.id === c.id);
@@ -113,6 +158,7 @@ getMasterData() {
   // ── Bills ────────────────────────────────────────────────────────────
 
   getBills(): Bill[] { return this._bills; }
+<<<<<<< HEAD
 // DataService.ts
 saveBill(bill: Bill) {
   return this.http.post<Bill>(API.bills, bill).pipe(
@@ -130,6 +176,14 @@ saveBill(bill: Bill) {
 
 
 
+=======
+
+  saveBill(b: Bill): void {
+    const idx = this._bills.findIndex(x => x.id === b.id);
+    idx >= 0 ? this._bills.splice(idx, 1, b) : this._bills.push(b);
+    this.http.post(API.bills, b).subscribe({ error: () => {} });
+  }
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
 
   deleteBill(id: string): void {
     const idx = this._bills.findIndex(b => b.id === id);
@@ -145,11 +199,19 @@ saveBill(bill: Bill) {
 
   getExpenses(): Expense[] { return this._expenses; }
 
+<<<<<<< HEAD
   saveExpense(e: Expense) {
     if (!e.id) e.id = Date.now().toString();
     const idx = this._expenses.findIndex(x => x.id === e.id);
     idx >= 0 ? this._expenses.splice(idx, 1, e) : this._expenses.push(e);
     return this.http.post(API.expenses, e);
+=======
+  saveExpense(e: Expense): void {
+    if (!e.id) e.id = Date.now().toString();
+    const idx = this._expenses.findIndex(x => x.id === e.id);
+    idx >= 0 ? this._expenses.splice(idx, 1, e) : this._expenses.push(e);
+    this.http.post(API.expenses, e).subscribe({ error: () => {} });
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
   }
 
   deleteExpense(id: string): void {

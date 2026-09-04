@@ -33,9 +33,12 @@ export class LoginComponent {
         this.error = 'Invalid username or password.';
       }
     });
+<<<<<<< HEAD
   }
 
   private navigateAfterLogin() {
     this.router.navigate([this.auth.isSuper() ? '/dashboard' : '/bills/new']);
+=======
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
   }
 }

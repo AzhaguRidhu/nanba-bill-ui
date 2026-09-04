@@ -36,6 +36,7 @@ export class RemainingComponent implements OnInit {
   }
 
   load() {
+<<<<<<< HEAD
     this.ds.getBillsFromApi().subscribe({
       next: bills => {
         this.bills = [...bills]
@@ -48,6 +49,10 @@ export class RemainingComponent implements OnInit {
         this.applyFilter();
       }
     });
+=======
+    this.bills = [...this.ds.getBills()].filter(b => b.paymentStatus !== 'Fully Paid').reverse();
+    this.applyFilter();
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
   }
 
   applyFilter() {

@@ -28,6 +28,7 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   constructor(public ds: DataService) {}
 
   ngOnInit() {
+<<<<<<< HEAD
      this.buildAvailableYears();
     this.load();
     this.ds.yearReady$.subscribe(() => {
@@ -44,6 +45,15 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   load() {
    this.ds.getBillsByYear(this.filterYear);
    this.updateDashboard();
+=======
+    this.load();
+    this.ds.ready$.subscribe(() => this.load());
+  }
+
+  load() {
+    this.stats = this.ds.getDashboardStats();
+    this.recentBills = [...this.ds.getBills()].slice(-5).reverse();
+>>>>>>> 4fe3bfc885ddd701758cf194cdc59830298fca75
   }
 
   private updateDashboard() {
