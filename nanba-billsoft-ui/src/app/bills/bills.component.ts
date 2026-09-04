@@ -3,10 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DataService } from '../data.service';
-import { Bill, BillItem, Customer, CategoryItem, ItemMaster, TERMS } from '../models';
-
-declare const jspdf: any;
-declare const html2canvas: any;
+import { Bill, BillItem, Customer, CategoryItem, ItemMaster, Payment, TERMS } from '../models';
 
 @Component({
   selector: 'app-bills',
@@ -19,8 +16,13 @@ export class BillsComponent implements OnInit {
   mode: 'list' | 'new' | 'view' = 'list';
   bills: Bill[] = [];
   filtered: Bill[] = [];
+  paginatedBills: Bill[] = [];
   search = '';
   statusFilter = '';
+  sortColumn: 'billNumber' | 'customerName' | 'billDate' | 'totalAmount' | 'paidAmount' | 'balanceAmount' | 'paymentStatus' = 'billDate';
+  sortDirection: 'asc' | 'desc' = 'desc';
+  currentPage = 1;
+  readonly pageSize = 10;
   viewBill: Bill | null = null;
   customers: Customer[] = [];
   billCategories: CategoryItem[] = [];
@@ -37,35 +39,89 @@ export class BillsComponent implements OnInit {
   selectedCustomerId = '';
   billDiscount = 0;
   billCharges = 0;
+  readonly maxBillDate = new Date().toISOString().split('T')[0];
+  fromDate = new Date().toISOString().split('T')[0];
+    toDate = new Date().toISOString().split('T')[0];
 
   statuses = ['Pending', 'Advance Paid', 'Partially Paid', 'Fully Paid', 'Credit', 'Overdue'];
 
-  constructor(private ds: DataService, private route: ActivatedRoute, private router: Router) {}
+  constructor(private ds: DataService, private route: ActivatedRoute, private router: Router) {
+  const today = new Date();
 
-  ngOnInit() {
+    // subtract 15 days
+    const past = new Date();
+    past.setDate(today.getDate() - 15);
+
+    // format as YYYY-MM-DD for <input type="date">
+    this.fromDate = past.toISOString().split('T')[0];
+    this.toDate   = today.toISOString().split('T')[0];
+
+
+  }
+
+ngOnInit() {
+  this.route.paramMap.subscribe(params => {
+    const id = params.get('id');
+    const isNewBillRoute = this.route.snapshot.routeConfig?.path === 'bills/new';
+
+    if (isNewBillRoute || id === 'new') {
+      this.mode = 'new';
+      this.initNew();
+    } else if (!id) {
+      this.mode = 'list';
+      // ✅ Fetch bills directly
+      this.ds.getBillsByDateRange(this.fromDate,this.toDate).subscribe({
+        next: bills => {
+          this.bills = [...bills].reverse();
+          this.applyFilter();
+        },
+        error: () => {
+          this.bills = [];
+          this.filtered = [];
+        }
+      });
+    } else {
+      // ✅ Fetch single bill directly
+      this.ds.getBillByIdFromApi(id).subscribe({
+        next: bill => {
+          this.viewBill = bill;
+          this.mode = 'view';
+        },
+        error: () => {
+          this.mode = 'list';
+           this.ds.getBillsByDateRange(this.fromDate,this.toDate).subscribe(bills => {
+      this.bills = [...bills].reverse();
+      this.applyFilter();
+    });
+        }
+      });
+    }
+  });
+
+  // ✅ Load master data in background
+  this.ds.getMasterData().subscribe({
+    next: res => {
+      this.customers = res.customers;
+      this.billCategories = res.billCategories;
+      this.itemsForCategory = {};
+      this.billCategories.forEach(c => {
+        this.itemsForCategory[c.id] = res.itemMasters.filter(item => item.categoryId === c.id);
+      });
+    }
+  });
+}
+
+
+
+
+
+
+  private loadMasterData() {
     this.customers = this.ds.getCustomers();
     this.billCategories = this.ds.getBillCategories();
+    this.itemsForCategory = {};
     this.billCategories.forEach(c => {
       this.itemsForCategory[c.id] = this.ds.getItemsByCategory(c.id);
-    });
-    this.route.paramMap.subscribe(params => {
-      const id = params.get('id');
-      if (!id) {
-        this.mode = 'list';
-        this.loadList();
-      } else if (id === 'new') {
-        this.mode = 'new';
-        this.initNew();
-      } else {
-        const bill = this.ds.getBillById(id);
-        if (bill) {
-          this.viewBill = { ...bill };
-          this.mode = 'view';
-        } else {
-          this.mode = 'list';
-          this.loadList();
-        }
-      }
     });
   }
 
@@ -81,7 +137,65 @@ export class BillsComponent implements OnInit {
       list = list.filter(b => b.billNumber.toLowerCase().includes(q) || b.customerName.toLowerCase().includes(q));
     }
     if (this.statusFilter) list = list.filter(b => b.paymentStatus === this.statusFilter);
-    this.filtered = list;
+    this.filtered = [...list].sort((a, b) => this.compareBills(a, b));
+    this.currentPage = 1;
+    this.updatePage();
+  }
+
+  sortBy(column: BillsComponent['sortColumn']) {
+    if (this.sortColumn === column) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumn = column;
+      this.sortDirection = 'asc';
+    }
+    this.filtered.sort((a, b) => this.compareBills(a, b));
+    this.updatePage();
+  }
+
+  compareBills(a: Bill, b: Bill): number {
+    const first = a[this.sortColumn];
+    const second = b[this.sortColumn];
+    let result = 0;
+
+    if (typeof first === 'number' && typeof second === 'number') {
+      result = first - second;
+    } else {
+      result = String(first ?? '').localeCompare(String(second ?? ''), undefined, { numeric: true, sensitivity: 'base' });
+    }
+
+    return this.sortDirection === 'asc' ? result : -result;
+  }
+
+  updatePage() {
+    const start = (this.currentPage - 1) * this.pageSize;
+    this.paginatedBills = this.filtered.slice(start, start + this.pageSize);
+  }
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.filtered.length / this.pageSize));
+  }
+
+  get pageStart(): number {
+    return (this.currentPage - 1) * this.pageSize + 1;
+  }
+
+  get pageEnd(): number {
+    return Math.min(this.currentPage * this.pageSize, this.filtered.length);
+  }
+
+  goToPage(page: number) {
+    this.currentPage = Math.min(Math.max(page, 1), this.totalPages);
+    this.updatePage();
+  }
+
+  applydatefilter() {
+    this.ds.getBillsByDateRange(this.fromDate, this.toDate).subscribe({
+      next: bills => {
+        this.bills = [...bills].reverse();
+        this.applyFilter();
+      }
+    });
   }
 
   initNew() {
@@ -166,12 +280,23 @@ export class BillsComponent implements OnInit {
     this.form.totalAmount = total < 0 ? 0 : total;
   }
 
-  saveBill() {
+  saveBill(fullPayment = false) {
+    if (this.form.billDate && this.form.billDate > this.maxBillDate) { alert('Bill date cannot be in the future'); return; }
     if (!this.form.customerName) { alert('Please enter customer name'); return; }
     if (!this.items.length) { alert('Please add at least one item'); return; }
     this.calcTotals();
-    const bill: Bill = {
+    const billId = Date.now().toString();
+    const totalAmount = this.form.totalAmount || 0;
+    const payments: Payment[] = fullPayment ? [{
       id: Date.now().toString(),
+      billId,
+      amount: totalAmount,
+      type: 'full',
+      date: new Date().toISOString().split('T')[0],
+      note: 'Full payment received'
+    }] : [];
+    const bill: Bill = {
+      id: billId,
       billNumber: this.form.billNumber!,
       billDate: this.form.billDate!,
       customerId: this.form.customerId || '',
@@ -183,15 +308,21 @@ export class BillsComponent implements OnInit {
       subtotal: this.form.subtotal || 0,
       discount: this.billDiscount || 0,
       charges: this.billCharges || 0,
-      totalAmount: this.form.totalAmount || 0,
-      paidAmount: 0,
-      balanceAmount: this.form.totalAmount || 0,
-      paymentStatus: 'Pending',
-      payments: [],
+      totalAmount,
+      paidAmount: fullPayment ? totalAmount : 0,
+      balanceAmount: fullPayment ? 0 : totalAmount,
+      paymentStatus: fullPayment ? 'Fully Paid' : 'Pending',
+      payments,
       createdAt: new Date().toISOString()
     };
-    this.ds.saveBill(bill);
-    this.router.navigate(['/bills', bill.id]);
+    this.ds.saveBill(bill).subscribe({
+    next: () => {
+      // ✅ navigate only after backend confirms save
+      this.router.navigate(['/bills', bill.id]);
+    },
+    error: () => alert('Failed to save bill')
+  });
+
   }
 
   openPayment() {
@@ -225,42 +356,79 @@ export class BillsComponent implements OnInit {
     } else {
       bill.paymentStatus = 'Partially Paid';
     }
-    this.ds.saveBill(bill);
-    this.viewBill = bill;
+      this.ds.saveBill(bill).subscribe({
+    next: () => {
+      this.viewBill = bill;
     this.showPaymentModal = false;
+    },
+    error: () => alert('Failed to save bill')
+  });
+ 
   }
 
   deleteBill(id: string) {
     if (confirm('Delete this bill?')) {
       this.ds.deleteBill(id);
+          this.loadList(); // refresh list immediately
       this.router.navigate(['/bills']);
     }
   }
 
+  pdfLoading = false;
+
   async downloadPDF() {
     const el = document.getElementById('bill-print');
     if (!el) return;
-    const canvas = await html2canvas(el, { scale: 2, useCORS: true });
-    const img = canvas.toDataURL('image/png');
-    const { jsPDF } = jspdf;
+    this.pdfLoading = true;
+    const h2c = (window as any).html2canvas;
+    const jpdf = (window as any).jspdf;
+    if (!h2c || !jpdf) { this.pdfLoading = false; return; }
+    const canvas = await h2c(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = jpdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
-    const w = pdf.internal.pageSize.getWidth();
-    const h = (canvas.height * w) / canvas.width;
-    pdf.addImage(img, 'PNG', 0, 0, w, h);
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const imgW = pageW;
+    const imgH = (canvas.height * imgW) / canvas.width;
+    let heightLeft = imgH;
+    let position = 0;
+    pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH);
+    heightLeft -= pageH;
+    while (heightLeft > 0) {
+      position -= pageH;
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, position, imgW, imgH);
+      heightLeft -= pageH;
+    }
     pdf.save(`${this.viewBill?.billNumber}.pdf`);
+    this.pdfLoading = false;
   }
 
   async downloadJPEG() {
     const el = document.getElementById('bill-print');
     if (!el) return;
-    const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+    const h2c = (window as any).html2canvas;
+    if (!h2c) return;
+    const canvas = await h2c(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
     const link = document.createElement('a');
     link.download = `${this.viewBill?.billNumber}.jpg`;
     link.href = canvas.toDataURL('image/jpeg', 0.95);
     link.click();
   }
 
-  printBill() { window.print(); }
+  printBill() {
+    const el = document.getElementById('bill-print');
+    if (!el) return;
+    const existing = document.getElementById('bill-print-portal');
+    if (existing) existing.remove();
+    const portal = document.createElement('div');
+    portal.id = 'bill-print-portal';
+    portal.innerHTML = `<div class="bill-paper">${el.innerHTML}</div>`;
+    document.body.appendChild(portal);
+    window.print();
+    setTimeout(() => portal.remove(), 1000);
+  }
 
   toggleShareMenu(e: Event) {
     e.stopPropagation();
@@ -291,7 +459,9 @@ export class BillsComponent implements OnInit {
     this.showShareMenu = false;
     const el = document.getElementById('bill-print');
     if (!el) return;
-    const canvas = await html2canvas(el, { scale: 2, useCORS: true });
+    const h2c = (window as any).html2canvas;
+    if (!h2c) return;
+    const canvas = await h2c(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
     canvas.toBlob(async (blob: Blob | null) => {
       if (!blob) return;
       const file = new File([blob], `${this.viewBill?.billNumber}.png`, { type: 'image/png' });

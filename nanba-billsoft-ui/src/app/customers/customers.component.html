@@ -13,9 +13,9 @@
       <table>
         <thead><tr><th>#</th><th>Name</th><th>Place</th><th>Mobile</th><th>WhatsApp</th><th>Bills</th><th>Actions</th></tr></thead>
         <tbody>
-          @for (c of filtered; track c.id; let i = $index) {
+          @for (c of paginatedCustomers; track c.id; let i = $index) {
             <tr>
-              <td>{{i+1}}</td>
+              <td>{{(currentPage - 1) * pageSize + i + 1}}</td>
               <td><strong>{{c.name}}</strong></td>
               <td>{{c.place}}</td>
               <td>{{c.mobile}}</td>
@@ -31,6 +31,14 @@
           }
         </tbody>
       </table>
+    </div>
+    <div class="pagination" aria-label="Customers pagination">
+      <span>Showing {{pageStart}}-{{pageEnd}} of {{filtered.length}}</span>
+      <div class="flex gap-8">
+        <button class="btn btn-secondary btn-sm" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">Previous</button>
+        <span class="page-number">Page {{currentPage}} of {{totalPages}}</span>
+        <button class="btn btn-secondary btn-sm" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">Next</button>
+      </div>
     </div>
   } @else {
     <div class="empty-state"><i class="fa-solid fa-users"></i><p>No customers found</p></div>

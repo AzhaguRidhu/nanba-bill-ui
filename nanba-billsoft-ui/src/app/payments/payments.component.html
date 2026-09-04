@@ -24,6 +24,15 @@
       <option value="">All Statuses</option>
       @for (s of statuses; track s) { <option [value]="s">{{s}}</option> }
     </select>
+      <div class="flex gap-8 flex-wrap">
+        <input type="date" title="From Date" class="form-control"  style="max-width:200px" [(ngModel)]="fromDate">
+    </div>
+     <div class="flex gap-8 flex-wrap">
+        <input type="date" title="To Date" class="form-control" style="max-width:200px" [(ngModel)]="toDate">
+    </div>
+        <div class="flex gap-8 flex-wrap">
+          <button class="btn btn-secondary" (click)="applydatefilter()"><i class="fa-solid fa-filter"></i> Filter</button>
+    </div>
   </div>
 </div>
 
@@ -31,9 +40,18 @@
   @if (filtered.length) {
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Bill No</th><th>Customer</th><th>Date</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th><th>Action</th></tr></thead>
+        <thead><tr>
+          <th><button class="sort-button" (click)="sortBy('billNumber')">Bill No <i class="fa-solid" [class.fa-arrow-up-wide-short]="sortColumn === 'billNumber' && sortDirection === 'asc'" [class.fa-arrow-down-wide-short]="sortColumn !== 'billNumber' || sortDirection === 'desc'"></i></button></th>
+          <th><button class="sort-button" (click)="sortBy('customerName')">Customer <i class="fa-solid" [class.fa-arrow-up-wide-short]="sortColumn === 'customerName' && sortDirection === 'asc'" [class.fa-arrow-down-wide-short]="sortColumn !== 'customerName' || sortDirection === 'desc'"></i></button></th>
+          <th><button class="sort-button" (click)="sortBy('billDate')">Date <i class="fa-solid" [class.fa-arrow-up-wide-short]="sortColumn === 'billDate' && sortDirection === 'asc'" [class.fa-arrow-down-wide-short]="sortColumn !== 'billDate' || sortDirection === 'desc'"></i></button></th>
+          <th><button class="sort-button" (click)="sortBy('totalAmount')">Total <i class="fa-solid" [class.fa-arrow-up-wide-short]="sortColumn === 'totalAmount' && sortDirection === 'asc'" [class.fa-arrow-down-wide-short]="sortColumn !== 'totalAmount' || sortDirection === 'desc'"></i></button></th>
+          <th><button class="sort-button" (click)="sortBy('paidAmount')">Paid <i class="fa-solid" [class.fa-arrow-up-wide-short]="sortColumn === 'paidAmount' && sortDirection === 'asc'" [class.fa-arrow-down-wide-short]="sortColumn !== 'paidAmount' || sortDirection === 'desc'"></i></button></th>
+          <th><button class="sort-button" (click)="sortBy('balanceAmount')">Balance <i class="fa-solid" [class.fa-arrow-up-wide-short]="sortColumn === 'balanceAmount' && sortDirection === 'asc'" [class.fa-arrow-down-wide-short]="sortColumn !== 'balanceAmount' || sortDirection === 'desc'"></i></button></th>
+          <th><button class="sort-button" (click)="sortBy('paymentStatus')">Status <i class="fa-solid" [class.fa-arrow-up-wide-short]="sortColumn === 'paymentStatus' && sortDirection === 'asc'" [class.fa-arrow-down-wide-short]="sortColumn !== 'paymentStatus' || sortDirection === 'desc'"></i></button></th>
+          <th>Action</th>
+        </tr></thead>
         <tbody>
-          @for (b of filtered; track b.id) {
+          @for (b of paginatedBills; track b.id) {
             <tr>
               <td><strong>{{b.billNumber}}</strong></td>
               <td>{{b.customerName}}</td>
@@ -54,6 +72,14 @@
           }
         </tbody>
       </table>
+    </div>
+    <div class="pagination" aria-label="Payments pagination">
+      <span>Showing {{pageStart}}-{{pageEnd}} of {{filtered.length}}</span>
+      <div class="flex gap-8">
+        <button class="btn btn-secondary btn-sm" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">Previous</button>
+        <span class="page-number">Page {{currentPage}} of {{totalPages}}</span>
+        <button class="btn btn-secondary btn-sm" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">Next</button>
+      </div>
     </div>
   } @else {
     <div class="empty-state"><i class="fa-solid fa-credit-card"></i><p>No payment records found</p></div>

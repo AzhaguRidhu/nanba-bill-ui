@@ -17,3 +17,11 @@ export const superGuard: CanActivateFn = () => {
   router.navigate(['/dashboard']);
   return false;
 };
+
+export const superDashboardGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  if (auth.isSuper()) return true;
+  router.navigate(['/bills/new']);
+  return false;
+};

@@ -31,9 +31,19 @@
   @if (filtered.length) {
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Bill No</th><th>Customer</th><th>Place</th><th>Bill Date</th><th>Total Bill</th><th>Paid</th><th>Balance</th><th>Status</th><th>Action</th></tr></thead>
+        <thead><tr>
+          <th><button class="sort-button" (click)="sortBy('billNumber')">Bill No <i class="fa-solid" [class.fa-arrow-up-wide-short]="sortColumn === 'billNumber' && sortDirection === 'asc'" [class.fa-arrow-down-wide-short]="sortColumn !== 'billNumber' || sortDirection === 'desc'"></i></button></th>
+          <th><button class="sort-button" (click)="sortBy('customerName')">Customer <i class="fa-solid" [class.fa-arrow-up-wide-short]="sortColumn === 'customerName' && sortDirection === 'asc'" [class.fa-arrow-down-wide-short]="sortColumn !== 'customerName' || sortDirection === 'desc'"></i></button></th>
+          <th><button class="sort-button" (click)="sortBy('customerPlace')">Place <i class="fa-solid" [class.fa-arrow-up-wide-short]="sortColumn === 'customerPlace' && sortDirection === 'asc'" [class.fa-arrow-down-wide-short]="sortColumn !== 'customerPlace' || sortDirection === 'desc'"></i></button></th>
+          <th><button class="sort-button" (click)="sortBy('billDate')">Bill Date <i class="fa-solid" [class.fa-arrow-up-wide-short]="sortColumn === 'billDate' && sortDirection === 'asc'" [class.fa-arrow-down-wide-short]="sortColumn !== 'billDate' || sortDirection === 'desc'"></i></button></th>
+          <th><button class="sort-button" (click)="sortBy('totalAmount')">Total Bill <i class="fa-solid" [class.fa-arrow-up-wide-short]="sortColumn === 'totalAmount' && sortDirection === 'asc'" [class.fa-arrow-down-wide-short]="sortColumn !== 'totalAmount' || sortDirection === 'desc'"></i></button></th>
+          <th><button class="sort-button" (click)="sortBy('paidAmount')">Paid <i class="fa-solid" [class.fa-arrow-up-wide-short]="sortColumn === 'paidAmount' && sortDirection === 'asc'" [class.fa-arrow-down-wide-short]="sortColumn !== 'paidAmount' || sortDirection === 'desc'"></i></button></th>
+          <th><button class="sort-button" (click)="sortBy('balanceAmount')">Balance <i class="fa-solid" [class.fa-arrow-up-wide-short]="sortColumn === 'balanceAmount' && sortDirection === 'asc'" [class.fa-arrow-down-wide-short]="sortColumn !== 'balanceAmount' || sortDirection === 'desc'"></i></button></th>
+          <th><button class="sort-button" (click)="sortBy('paymentStatus')">Status <i class="fa-solid" [class.fa-arrow-up-wide-short]="sortColumn === 'paymentStatus' && sortDirection === 'asc'" [class.fa-arrow-down-wide-short]="sortColumn !== 'paymentStatus' || sortDirection === 'desc'"></i></button></th>
+          <th>Action</th>
+        </tr></thead>
         <tbody>
-          @for (b of filtered; track b.id) {
+          @for (b of paginatedBills; track b.id) {
             <tr>
               <td><strong>{{b.billNumber}}</strong></td>
               <td>{{b.customerName}}</td>
@@ -46,7 +56,7 @@
               <td>
                 <div class="flex gap-8">
                   <a [routerLink]="['/bills', b.id]" class="btn btn-info btn-sm"><i class="fa-solid fa-eye"></i></a>
-                  <a [routerLink]="['/payments']" class="btn btn-success btn-sm"><i class="fa-solid fa-plus"></i> Pay</a>
+                  <button class="btn btn-success btn-sm" (click)="openPayment(b)"><i class="fa-solid fa-plus"></i> Pay</button>
                 </div>
               </td>
             </tr>
@@ -54,6 +64,46 @@
         </tbody>
       </table>
     </div>
+    <div class="pagination" aria-label="Remaining balances pagination">
+      <span>Showing {{pageStart}}-{{pageEnd}} of {{filtered.length}}</span>
+      <div class="flex gap-8">
+        <button class="btn btn-secondary btn-sm" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">Previous</button>
+        <span class="page-number">Page {{currentPage}} of {{totalPages}}</span>
+        <button class="btn btn-secondary btn-sm" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">Next</button>
+      </div>
+    </div>
+
+    @if (showPaymentModal && selectedBill) {
+      <div class="modal-overlay" (click)="showPaymentModal = false">
+        <div class="modal" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3>Payment - {{selectedBill.billNumber}}</h3>
+            <button class="close-btn" (click)="showPaymentModal = false"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label>Payment Type</label>
+              <select class="form-control" [(ngModel)]="paymentType" (ngModelChange)="onPaymentTypeChange()">
+                <option value="balance">Pending Payment</option>
+                <option value="full">Full Payment</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Amount (₹) - Balance: ₹{{selectedBill.balanceAmount | number:'1.0-0'}}</label>
+              <input type="number" class="form-control" [(ngModel)]="paymentAmount" min="0" [max]="selectedBill.balanceAmount">
+            </div>
+            <div class="form-group">
+              <label>Note</label>
+              <input class="form-control" [(ngModel)]="paymentNote" placeholder="Optional note">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="showPaymentModal = false">Cancel</button>
+            <button class="btn btn-primary" (click)="addPayment()">Save Payment</button>
+          </div>
+        </div>
+      </div>
+    }
   } @else {
     <div class="empty-state"><i class="fa-solid fa-circle-check" style="color:#16a34a"></i><p>No outstanding balances!</p></div>
   }

@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, Pipe, PipeTransform } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DataService } from '../data.service';
@@ -6,10 +6,17 @@ import { Bill, Expense } from '../models';
 
 declare const Chart: any;
 
+@Pipe({ name: 'sumProp', standalone: true })
+export class SumPropPipe implements PipeTransform {
+  transform(items: any[], prop: string): number {
+    return (items || []).reduce((s: number, i: any) => s + (i[prop] || 0), 0);
+  }
+}
+
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SumPropPipe],
   templateUrl: './reports.component.html',
   styleUrl: './reports.component.css'
 })
@@ -24,6 +31,23 @@ export class ReportsComponent implements OnInit, AfterViewInit {
   filterMonth = new Date().toISOString().substring(0, 7);
   filterDate = new Date().toISOString().split('T')[0];
   filterYear = new Date().getFullYear();
+  dailySearch = '';
+  monthlySearch = '';
+  dailyPage = 1;
+  monthlyPage = 1;
+  readonly reportPageSize = 10;
+  customerSearch = '';
+  customerPage = 1;
+  customerSortColumn: 'name' | 'bills' | 'total' | 'paid' | 'balance' = 'name';
+  customerSortDirection: 'asc' | 'desc' = 'asc';
+  pendingSearch = '';
+  pendingStatus = '';
+  pendingPage = 1;
+  pendingSortColumn: 'billNumber' | 'customerName' | 'billDate' | 'totalAmount' | 'paidAmount' | 'balanceAmount' | 'paymentStatus' = 'billDate';
+  pendingSortDirection: 'asc' | 'desc' = 'desc';
+  expenseSearch = '';
+  expenseFromDate = '';
+  expenseToDate = '';
   availableYears: number[] = [];
   private yearlyChartInstance: any = null;
 
@@ -41,9 +65,37 @@ export class ReportsComponent implements OnInit, AfterViewInit {
   constructor(private ds: DataService) {}
 
   ngOnInit() {
-    this.bills = this.ds.getBills();
-    this.expenses = this.ds.getExpenses();
-    this.buildAvailableYears();
+    this.load();
+    this.ds.ready$.subscribe(() => {
+      this.load();
+      this.renderCharts();
+    });
+  }
+
+  load() {
+     this.CurrentyearlyBills();
+    this.ds.getExpensesall().subscribe(expenses => {
+      this.expenses = [...expenses].sort((a, b) => b.date.localeCompare(a.date));
+      this.buildAvailableYears();
+    });
+  }
+
+  CurrentyearlyBills() {
+    const year = this.filterYear;
+
+// Start of year
+const fromDate = `${year}-01-01`;
+
+// End of year
+const toDate = `${year}-12-31`;
+
+// Call your API
+this.ds.getBillsByDateRange(fromDate, toDate).subscribe({
+  next: bills => {
+    this.bills = [...bills].reverse();
+  }
+});
+
   }
 
   ngAfterViewInit() {
@@ -153,7 +205,53 @@ export class ReportsComponent implements OnInit, AfterViewInit {
       .sort((a, b) => b.amount - a.amount);
   }
 
-  printYearlyReport() { window.print(); }
+  pdfLoading = false;
+  today = new Date();
+
+  private async generatePDF(elementId: string, filename: string) {
+    this.pdfLoading = true;
+    const el = document.getElementById(elementId);
+    if (!el) { this.pdfLoading = false; return; }
+    const h2c = (window as any).html2canvas;
+    const jpdf = (window as any).jspdf;
+    if (!h2c || !jpdf) { this.pdfLoading = false; return; }
+    const excludedElements = Array.from(el.querySelectorAll('.pdf-exclude')) as HTMLElement[];
+    const previousDisplays = excludedElements.map(element => element.style.display);
+    excludedElements.forEach(element => element.style.display = 'none');
+    try {
+      const canvas = await h2c(el, { scale: 1.5, useCORS: true, backgroundColor: '#ffffff' });
+      const imgData = canvas.toDataURL('image/jpeg', 0.75);
+      const { jsPDF } = jpdf;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgW = pageW;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      let y = 0;
+      let remaining = imgH;
+      while (remaining > 0) {
+        pdf.addImage(imgData, 'JPEG', 0, y === 0 ? 0 : -(imgH - remaining), imgW, imgH, undefined, 'FAST');
+        remaining -= pageH;
+        if (remaining > 0) { pdf.addPage(); y += pageH; }
+      }
+      pdf.save(filename);
+    } finally {
+      excludedElements.forEach((element, index) => element.style.display = previousDisplays[index]);
+      this.pdfLoading = false;
+    }
+  }
+
+  downloadMonthlyPDF() {
+    this.generatePDF('monthly-report-print', `Monthly-Report-${this.filterMonth}.pdf`);
+  }
+
+  downloadYearlyPDF() {
+    this.generatePDF('yearly-report-print', `Yearly-Report-${this.filterYear}.pdf`);
+  }
+
+  downloadExpensePDF() {
+    this.generatePDF('expense-report-print', `Expense-Report-${this.expenseFromDate || 'all'}-${this.expenseToDate || 'all'}.pdf`);
+  }
 
   async shareYearlyReport() {
     const el = document.getElementById('yearly-report-print');
@@ -175,11 +273,73 @@ export class ReportsComponent implements OnInit, AfterViewInit {
     }, 'image/png');
   }
 
-  get dailyBills() { return this.bills.filter(b => b.billDate === this.filterDate); }
+  get dailyBills() { return this.filterBills(this.bills.filter(b => b.billDate === this.filterDate), this.dailySearch); }
+  get paginatedDailyBills() { return this.paginate(this.dailyBills, this.dailyPage); }
+  get dailyTotalPages() { return this.totalPages(this.dailyBills); }
+  get dailyPageStart() { return this.pageStart(this.dailyBills, this.dailyPage); }
+  get dailyPageEnd() { return this.pageEnd(this.dailyBills, this.dailyPage); }
   get dailySales() { return this.dailyBills.reduce((s, b) => s + b.totalAmount, 0); }
 
-  get monthlyBills() { return this.bills.filter(b => b.billDate.startsWith(this.filterMonth)); }
+  get monthlyBills() { return this.filterBills(this.bills.filter(b => b.billDate.startsWith(this.filterMonth)), this.monthlySearch); }
+  get paginatedMonthlyBills() { return this.paginate(this.monthlyBills, this.monthlyPage); }
+  get monthlyTotalPages() { return this.totalPages(this.monthlyBills); }
+  get monthlyPageStart() { return this.pageStart(this.monthlyBills, this.monthlyPage); }
+  get monthlyPageEnd() { return this.pageEnd(this.monthlyBills, this.monthlyPage); }
   get monthlySales() { return this.monthlyBills.reduce((s, b) => s + b.totalAmount, 0); }
+
+  onDailyFilterChange() { this.dailyPage = 1; }
+  onMonthlyFilterChange() { this.monthlyPage = 1; }
+
+  goToDailyPage(page: number) {
+    this.dailyPage = this.clampPage(page, this.dailyTotalPages);
+  }
+
+  goToMonthlyPage(page: number) {
+    this.monthlyPage = this.clampPage(page, this.monthlyTotalPages);
+  }
+
+  private filterBills(bills: Bill[], search: string): Bill[] {
+    const query = search.trim().toLowerCase();
+    if (!query) return bills;
+    return bills.filter(b => [b.billNumber, b.customerName, b.customerPlace]
+      .some(value => value?.toLowerCase().includes(query)));
+  }
+
+  private paginate<T>(records: T[], page: number): T[] {
+    const start = (this.clampPage(page, this.totalPages(records)) - 1) * this.reportPageSize;
+    return records.slice(start, start + this.reportPageSize);
+  }
+
+  private totalPages(records: unknown[]): number {
+    return Math.max(1, Math.ceil(records.length / this.reportPageSize));
+  }
+
+  private pageStart(records: unknown[], page: number): number {
+    return records.length ? (this.clampPage(page, this.totalPages(records)) - 1) * this.reportPageSize + 1 : 0;
+  }
+
+  private pageEnd(records: unknown[], page: number): number {
+    return Math.min(this.clampPage(page, this.totalPages(records)) * this.reportPageSize, records.length);
+  }
+
+  private clampPage(page: number, totalPages: number): number {
+    return Math.min(Math.max(page, 1), totalPages);
+  }
+
+  get filteredExpenses() {
+    const query = this.expenseSearch.trim().toLowerCase();
+    return this.expenses.filter(expense => {
+      const matchesSearch = !query || [expense.name, expense.category, expense.note]
+        .some(value => value?.toLowerCase().includes(query));
+      const matchesFrom = !this.expenseFromDate || expense.date >= this.expenseFromDate;
+      const matchesTo = !this.expenseToDate || expense.date <= this.expenseToDate;
+      return matchesSearch && matchesFrom && matchesTo;
+    });
+  }
+
+  get filteredExpenseTotal() {
+    return this.filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  }
 
   get categoryData() {
     const map: Record<string, { count: number; amount: number }> = {};
@@ -191,7 +351,7 @@ export class ReportsComponent implements OnInit, AfterViewInit {
     return Object.entries(map).map(([cat, v]) => ({ category: cat, ...v }));
   }
 
-  get customerData() {
+  private get allCustomerData() {
     const map: Record<string, { name: string; bills: number; total: number; paid: number; balance: number }> = {};
     this.bills.forEach(b => {
       if (!map[b.customerId || b.customerName]) map[b.customerId || b.customerName] = { name: b.customerName, bills: 0, total: 0, paid: 0, balance: 0 };
@@ -201,11 +361,71 @@ export class ReportsComponent implements OnInit, AfterViewInit {
     return Object.values(map);
   }
 
+  get customerData() {
+    const query = this.customerSearch.trim().toLowerCase();
+    const filtered = this.allCustomerData.filter(customer => !query || customer.name.toLowerCase().includes(query));
+    return this.sortRecords(filtered, this.customerSortColumn, this.customerSortDirection);
+  }
+
+  get paginatedCustomerData() { return this.paginate(this.customerData, this.customerPage); }
+  get customerTotalPages() { return this.totalPages(this.customerData); }
+  get customerPageStart() { return this.pageStart(this.customerData, this.customerPage); }
+  get customerPageEnd() { return this.pageEnd(this.customerData, this.customerPage); }
+
+  onCustomerFilterChange() { this.customerPage = 1; }
+
+  sortCustomerBy(column: typeof this.customerSortColumn) {
+    if (this.customerSortColumn === column) this.customerSortDirection = this.customerSortDirection === 'asc' ? 'desc' : 'asc';
+    else { this.customerSortColumn = column; this.customerSortDirection = 'asc'; }
+    this.customerPage = 1;
+  }
+
+  goToCustomerPage(page: number) {
+    this.customerPage = this.clampPage(page, this.customerTotalPages);
+  }
+
   get totalSales() { return this.bills.reduce((s, b) => s + b.totalAmount, 0); }
   get totalExpenses() { return this.expenses.reduce((s, e) => s + e.amount, 0); }
   get profit() { return this.totalSales - this.totalExpenses; }
 
-  get pendingBills() { return this.bills.filter(b => b.paymentStatus !== 'Fully Paid'); }
+  get pendingBills() {
+    const query = this.pendingSearch.trim().toLowerCase();
+    const filtered = this.bills.filter(b => {
+      const matchesSearch = !query || [b.billNumber, b.customerName, b.customerPlace]
+        .some(value => value?.toLowerCase().includes(query));
+      const matchesStatus = !this.pendingStatus || b.paymentStatus === this.pendingStatus;
+      return b.paymentStatus !== 'Fully Paid' && matchesSearch && matchesStatus;
+    });
+    return this.sortRecords(filtered, this.pendingSortColumn, this.pendingSortDirection);
+  }
+
+  get paginatedPendingBills() { return this.paginate(this.pendingBills, this.pendingPage); }
+  get pendingTotalPages() { return this.totalPages(this.pendingBills); }
+  get pendingPageStart() { return this.pageStart(this.pendingBills, this.pendingPage); }
+  get pendingPageEnd() { return this.pageEnd(this.pendingBills, this.pendingPage); }
+
+  onPendingFilterChange() { this.pendingPage = 1; }
+
+  sortPendingBy(column: typeof this.pendingSortColumn) {
+    if (this.pendingSortColumn === column) this.pendingSortDirection = this.pendingSortDirection === 'asc' ? 'desc' : 'asc';
+    else { this.pendingSortColumn = column; this.pendingSortDirection = 'asc'; }
+    this.pendingPage = 1;
+  }
+
+  goToPendingPage(page: number) {
+    this.pendingPage = this.clampPage(page, this.pendingTotalPages);
+  }
+
+  private sortRecords(records: any[], column: string, direction: 'asc' | 'desc') {
+    const multiplier = direction === 'asc' ? 1 : -1;
+    return [...records].sort((first, second) => {
+      const firstValue = first[column];
+      const secondValue = second[column];
+      if (firstValue === secondValue) return 0;
+      if (typeof firstValue === 'number' && typeof secondValue === 'number') return (firstValue - secondValue) * multiplier;
+      return String(firstValue ?? '').localeCompare(String(secondValue ?? ''), undefined, { numeric: true, sensitivity: 'base' }) * multiplier;
+    });
+  }
 
   getStatusClass(status: string): string {
     const map: any = { 'Fully Paid': 'badge-success', 'Pending': 'badge-warning', 'Credit': 'badge-danger', 'Advance Paid': 'badge-info', 'Partially Paid': 'badge-orange', 'Overdue': 'badge-danger' };

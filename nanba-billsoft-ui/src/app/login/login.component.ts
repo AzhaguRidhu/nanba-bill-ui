@@ -19,20 +19,23 @@ export class LoginComponent {
   showPwd = false;
 
   constructor(private auth: AuthService, private router: Router) {
-    if (this.auth.isLoggedIn()) this.router.navigate(['/dashboard']);
+    if (this.auth.isLoggedIn()) this.navigateAfterLogin();
   }
 
   onLogin() {
     this.error = '';
     this.loading = true;
-    setTimeout(() => {
-      const user = this.auth.login(this.username.trim(), this.password);
+    this.auth.login(this.username.trim(), this.password).subscribe(user => {
       this.loading = false;
       if (user) {
-        this.router.navigate(['/dashboard']);
+        this.navigateAfterLogin();
       } else {
         this.error = 'Invalid username or password.';
       }
-    }, 400);
+    });
+  }
+
+  private navigateAfterLogin() {
+    this.router.navigate([this.auth.isSuper() ? '/dashboard' : '/bills/new']);
   }
 }

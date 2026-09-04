@@ -38,7 +38,7 @@
   color: #f59e0b;
 }
 
-.logo i { font-size: 1.4rem; }
+.logo .brand-icon { width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; }
 .logo-text { white-space: nowrap; }
 
 .toggle-btn {

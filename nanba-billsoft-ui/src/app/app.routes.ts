@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { LayoutComponent } from './layout/layout.component';
 import { LoginComponent } from './login/login.component';
-import { authGuard, superGuard } from './auth.guard';
+import { authGuard, superDashboardGuard, superGuard } from './auth.guard';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -11,10 +11,11 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-      { path: 'dashboard', loadComponent: () => import('./dashboard/dashboard.component').then(m => m.DashboardComponent) },
+      { path: 'dashboard', loadComponent: () => import('./dashboard/dashboard.component').then(m => m.DashboardComponent), canActivate: [superDashboardGuard] },
       { path: 'customers', loadComponent: () => import('./customers/customers.component').then(m => m.CustomersComponent) },
-      { path: 'bills', loadComponent: () => import('./bills/bills.component').then(m => m.BillsComponent) },
-      { path: 'bills/:id', loadComponent: () => import('./bills/bills.component').then(m => m.BillsComponent) },
+      { path: 'bills', loadComponent: () => import('./bills/bills.component').then(m => m.BillsComponent), canActivate: [superGuard] },
+      { path: 'bills/new', loadComponent: () => import('./bills/bills.component').then(m => m.BillsComponent) },
+      { path: 'bills/:id', loadComponent: () => import('./bills/bills.component').then(m => m.BillsComponent), canActivate: [superGuard] },
       { path: 'payments', loadComponent: () => import('./payments/payments.component').then(m => m.PaymentsComponent) },
       { path: 'expenses', loadComponent: () => import('./expenses/expenses.component').then(m => m.ExpensesComponent) },
       { path: 'remaining', loadComponent: () => import('./remaining/remaining.component').then(m => m.RemainingComponent) },

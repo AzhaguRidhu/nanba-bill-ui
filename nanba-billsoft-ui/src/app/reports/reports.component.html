@@ -11,9 +11,10 @@
 <!-- Daily Sales -->
 @if (activeReport === 'daily') {
   <div class="card mb-16">
-    <div class="flex gap-8 items-center mb-16">
+    <div class="flex gap-8 items-center flex-wrap mb-16">
       <label style="font-weight:600">Date:</label>
-      <input type="date" class="form-control" style="max-width:200px" [(ngModel)]="filterDate">
+      <input type="date" class="form-control" style="max-width:200px" [(ngModel)]="filterDate" (ngModelChange)="onDailyFilterChange()">
+      <input class="form-control" style="max-width:280px" placeholder="Search bill, customer or place" [(ngModel)]="dailySearch" (input)="onDailyFilterChange()">
     </div>
     <div class="summary-row">
       <div class="summary-item"><span>Bills</span><strong>{{dailyBills.length}}</strong></div>
@@ -24,11 +25,11 @@
     @if (dailyBills.length) {
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Bill No</th><th>Customer</th><th>Amount</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
+          <thead><tr><th>Bill No</th><th>Customer</th><th>Place</th><th>Amount</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
           <tbody>
-            @for (b of dailyBills; track b.id) {
+            @for (b of paginatedDailyBills; track b.id) {
               <tr>
-                <td>{{b.billNumber}}</td><td>{{b.customerName}}</td>
+                <td>{{b.billNumber}}</td><td>{{b.customerName}}</td><td>{{b.customerPlace}}</td>
                 <td>₹{{b.totalAmount | number:'1.0-0'}}</td>
                 <td>₹{{b.paidAmount | number:'1.0-0'}}</td>
                 <td>₹{{b.balanceAmount | number:'1.0-0'}}</td>
@@ -38,42 +39,90 @@
           </tbody>
         </table>
       </div>
+      <div class="pagination" aria-label="Daily report pagination">
+        <span>Showing {{dailyPageStart}}-{{dailyPageEnd}} of {{dailyBills.length}}</span>
+        <div class="flex gap-8">
+          <button class="btn btn-secondary btn-sm" (click)="goToDailyPage(dailyPage - 1)" [disabled]="dailyPage === 1">Previous</button>
+          <span class="page-number">Page {{dailyPage}} of {{dailyTotalPages}}</span>
+          <button class="btn btn-secondary btn-sm" (click)="goToDailyPage(dailyPage + 1)" [disabled]="dailyPage === dailyTotalPages">Next</button>
+        </div>
+      </div>
     } @else { <div class="empty-state"><i class="fa-solid fa-calendar-day"></i><p>No bills on this date</p></div> }
   </div>
 }
 
 <!-- Monthly Sales -->
 @if (activeReport === 'monthly') {
-  <div class="card mb-16">
-    <div class="flex gap-8 items-center mb-16">
+  <div class="report-action-bar">
+    <div class="flex gap-8 items-center flex-wrap">
       <label style="font-weight:600">Month:</label>
-      <input type="month" class="form-control" style="max-width:200px" [(ngModel)]="filterMonth">
+      <input type="month" class="form-control" style="max-width:200px" [(ngModel)]="filterMonth" (ngModelChange)="onMonthlyFilterChange()">
+      <input class="form-control" style="max-width:280px" placeholder="Search bill, customer or place" [(ngModel)]="monthlySearch" (input)="onMonthlyFilterChange()">
+    </div>
+    <button class="btn btn-primary btn-sm" (click)="downloadMonthlyPDF()" [disabled]="pdfLoading">
+      @if (pdfLoading) { <i class="fa-solid fa-spinner fa-spin"></i> } @else { <i class="fa-solid fa-file-pdf"></i> }
+      Download PDF
+    </button>
+  </div>
+
+  <div id="monthly-report-print" class="report-print-area">
+    <div class="report-print-header">
+      <div class="report-biz-name"><img class="report-brand-icon" src="nanba-digi.ico" alt=""> Nanba Printing &amp; Design</div>
+      <div class="report-title">Monthly Sales Report — {{filterMonth}}</div>
     </div>
     <div class="summary-row">
-      <div class="summary-item"><span>Bills</span><strong>{{monthlyBills.length}}</strong></div>
-      <div class="summary-item"><span>Sales</span><strong>₹{{monthlySales | number:'1.0-0'}}</strong></div>
+      <div class="summary-item"><span>Total Bills</span><strong>{{monthlyBills.length}}</strong></div>
+      <div class="summary-item"><span>Total Sales</span><strong>₹{{monthlySales | number:'1.0-0'}}</strong></div>
+      <div class="summary-item"><span>Collected</span><strong style="color:#16a34a">₹{{monthlyBills | sumProp:'paidAmount' | number:'1.0-0'}}</strong></div>
+      <div class="summary-item"><span>Balance</span><strong style="color:#dc2626">₹{{monthlyBills | sumProp:'balanceAmount' | number:'1.0-0'}}</strong></div>
     </div>
-    <canvas #monthlyChart height="120"></canvas>
-  </div>
-  <div class="card">
     @if (monthlyBills.length) {
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Bill No</th><th>Customer</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
-          <tbody>
-            @for (b of monthlyBills; track b.id) {
-              <tr><td>{{b.billNumber}}</td><td>{{b.customerName}}</td><td>{{b.billDate}}</td><td>₹{{b.totalAmount | number:'1.0-0'}}</td><td><span class="badge {{getStatusClass(b.paymentStatus)}}">{{b.paymentStatus}}</span></td></tr>
-            }
-          </tbody>
-        </table>
+      <table class="report-table">
+        <thead><tr><th>#</th><th>Bill No</th><th>Customer</th><th>Place</th><th>Date</th><th>Amount (₹)</th><th>Paid (₹)</th><th>Balance (₹)</th><th>Status</th></tr></thead>
+        <tbody>
+          @for (b of monthlyBills; track b.id; let i = $index) {
+            <tr>
+              <td>{{i + 1}}</td>
+              <td>{{b.billNumber}}</td><td>{{b.customerName}}</td><td>{{b.customerPlace}}</td><td>{{b.billDate}}</td>
+              <td>₹{{b.totalAmount | number:'1.0-0'}}</td>
+              <td style="color:#16a34a">₹{{b.paidAmount | number:'1.0-0'}}</td>
+              <td style="color:#dc2626">₹{{b.balanceAmount | number:'1.0-0'}}</td>
+              <td><span class="badge {{getStatusClass(b.paymentStatus)}}">{{b.paymentStatus}}</span></td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr class="totals-row">
+            <td colspan="5"><strong>Total</strong></td>
+            <td><strong>₹{{monthlySales | number:'1.0-0'}}</strong></td>
+            <td style="color:#16a34a"><strong>₹{{monthlyBills | sumProp:'paidAmount' | number:'1.0-0'}}</strong></td>
+            <td style="color:#dc2626"><strong>₹{{monthlyBills | sumProp:'balanceAmount' | number:'1.0-0'}}</strong></td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="pagination pdf-exclude" aria-label="Monthly report pagination">
+        <span>Showing {{monthlyPageStart}}-{{monthlyPageEnd}} of {{monthlyBills.length}}</span>
+        <div class="flex gap-8">
+          <button class="btn btn-secondary btn-sm" (click)="goToMonthlyPage(monthlyPage - 1)" [disabled]="monthlyPage === 1">Previous</button>
+          <span class="page-number">Page {{monthlyPage}} of {{monthlyTotalPages}}</span>
+          <button class="btn btn-secondary btn-sm" (click)="goToMonthlyPage(monthlyPage + 1)" [disabled]="monthlyPage === monthlyTotalPages">Next</button>
+        </div>
       </div>
-    } @else { <div class="empty-state"><i class="fa-solid fa-calendar"></i><p>No bills this month</p></div> }
+    } @else {
+      <div class="empty-state"><i class="fa-solid fa-calendar"></i><p>No bills this month</p></div>
+    }
+    <div class="report-print-footer">Generated on {{today | date:'dd MMM yyyy, hh:mm a'}}</div>
   </div>
 }
 
 <!-- Yearly Report -->
 @if (activeReport === 'yearly') {
-  <div id="yearly-report-print">
+  <div id="yearly-report-print" class="report-print-area">
+    <div class="report-print-header">
+      <div class="report-biz-name"><img class="report-brand-icon" src="nanba-digi.ico" alt=""> Nanba Printing &amp; Design</div>
+      <div class="report-title">Yearly Report — {{filterYear}}</div>
+    </div>
     <!-- Header -->
     <div class="yearly-header no-print-hide">
       <div class="flex items-center gap-8 flex-wrap">
@@ -83,8 +132,9 @@
         </select>
       </div>
       <div class="flex gap-8">
-        <button class="btn btn-secondary btn-sm" (click)="printYearlyReport()">
-          <i class="fa-solid fa-print"></i> Print
+        <button class="btn btn-primary btn-sm" (click)="downloadYearlyPDF()" [disabled]="pdfLoading">
+          @if (pdfLoading) { <i class="fa-solid fa-spinner fa-spin"></i> } @else { <i class="fa-solid fa-file-pdf"></i> }
+          Download PDF
         </button>
         <button class="btn btn-share btn-sm" (click)="shareYearlyReport()">
           <i class="fa-solid fa-share-nodes"></i> Share
@@ -201,6 +251,7 @@
         </div>
       </div>
     }
+    <div class="report-print-footer">Generated on {{today | date:'dd MMM yyyy, hh:mm a'}}</div>
   </div>
 }
 
@@ -224,17 +275,34 @@
 
 <!-- Customer-wise -->
 @if (activeReport === 'customer') {
+  <div class="report-action-bar">
+    <input class="form-control" style="max-width:280px" placeholder="Search customer..." [(ngModel)]="customerSearch" (input)="onCustomerFilterChange()">
+  </div>
   <div class="card">
     @if (customerData.length) {
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Customer</th><th>Bills</th><th>Total</th><th>Paid</th><th>Balance</th></tr></thead>
+          <thead><tr>
+            <th><button class="sort-button" (click)="sortCustomerBy('name')">Customer <i class="fa-solid" [class.fa-arrow-up-wide-short]="customerSortColumn === 'name' && customerSortDirection === 'asc'" [class.fa-arrow-down-wide-short]="customerSortColumn !== 'name' || customerSortDirection === 'desc'"></i></button></th>
+            <th><button class="sort-button" (click)="sortCustomerBy('bills')">Bills <i class="fa-solid" [class.fa-arrow-up-wide-short]="customerSortColumn === 'bills' && customerSortDirection === 'asc'" [class.fa-arrow-down-wide-short]="customerSortColumn !== 'bills' || customerSortDirection === 'desc'"></i></button></th>
+            <th><button class="sort-button" (click)="sortCustomerBy('total')">Total <i class="fa-solid" [class.fa-arrow-up-wide-short]="customerSortColumn === 'total' && customerSortDirection === 'asc'" [class.fa-arrow-down-wide-short]="customerSortColumn !== 'total' || customerSortDirection === 'desc'"></i></button></th>
+            <th><button class="sort-button" (click)="sortCustomerBy('paid')">Paid <i class="fa-solid" [class.fa-arrow-up-wide-short]="customerSortColumn === 'paid' && customerSortDirection === 'asc'" [class.fa-arrow-down-wide-short]="customerSortColumn !== 'paid' || customerSortDirection === 'desc'"></i></button></th>
+            <th><button class="sort-button" (click)="sortCustomerBy('balance')">Balance <i class="fa-solid" [class.fa-arrow-up-wide-short]="customerSortColumn === 'balance' && customerSortDirection === 'asc'" [class.fa-arrow-down-wide-short]="customerSortColumn !== 'balance' || customerSortDirection === 'desc'"></i></button></th>
+          </tr></thead>
           <tbody>
-            @for (c of customerData; track c.name) {
+            @for (c of paginatedCustomerData; track c.name) {
               <tr><td><strong>{{c.name}}</strong></td><td>{{c.bills}}</td><td>₹{{c.total | number:'1.0-0'}}</td><td style="color:#16a34a">₹{{c.paid | number:'1.0-0'}}</td><td style="color:#dc2626">₹{{c.balance | number:'1.0-0'}}</td></tr>
             }
           </tbody>
         </table>
+      </div>
+      <div class="pagination" aria-label="Customer report pagination">
+        <span>Showing {{customerPageStart}}-{{customerPageEnd}} of {{customerData.length}}</span>
+        <div class="flex gap-8">
+          <button class="btn btn-secondary btn-sm" (click)="goToCustomerPage(customerPage - 1)" [disabled]="customerPage === 1">Previous</button>
+          <span class="page-number">Page {{customerPage}} of {{customerTotalPages}}</span>
+          <button class="btn btn-secondary btn-sm" (click)="goToCustomerPage(customerPage + 1)" [disabled]="customerPage === customerTotalPages">Next</button>
+        </div>
       </div>
     } @else { <div class="empty-state"><i class="fa-solid fa-users"></i><p>No customer data</p></div> }
   </div>
@@ -242,22 +310,41 @@
 
 <!-- Expense Report -->
 @if (activeReport === 'expense') {
-  <div class="card mb-16">
-    <canvas #expenseChart height="120"></canvas>
+  <div class="report-action-bar expense-report-filters">
+    <div class="flex gap-8 flex-wrap">
+      <input class="form-control" style="max-width:240px" placeholder="Search expense..." [(ngModel)]="expenseSearch">
+      <input type="date" class="form-control" title="From date" [(ngModel)]="expenseFromDate">
+      <input type="date" class="form-control" title="To date" [(ngModel)]="expenseToDate">
+    </div>
+    <button class="btn btn-primary btn-sm" (click)="downloadExpensePDF()" [disabled]="pdfLoading">
+      @if (pdfLoading) { <i class="fa-solid fa-spinner fa-spin"></i> } @else { <i class="fa-solid fa-file-pdf"></i> }
+      Download PDF
+    </button>
   </div>
-  <div class="card">
-    @if (expenses.length) {
+
+  <div id="expense-report-print" class="report-print-area">
+    <div class="report-print-header">
+      <div class="report-biz-name"><img class="report-brand-icon" src="nanba-digi.ico" alt=""> Nanba Printing &amp; Design</div>
+      <div class="report-title">Expense Report</div>
+    </div>
+    <div class="summary-row">
+      <div class="summary-item"><span>Total Expenses</span><strong>₹{{filteredExpenseTotal | number:'1.0-0'}}</strong></div>
+      <div class="summary-item"><span>Records</span><strong>{{filteredExpenses.length}}</strong></div>
+    </div>
+    @if (filteredExpenses.length) {
       <div class="table-wrap">
-        <table>
-          <thead><tr><th>Category</th><th>Name</th><th>Amount</th><th>Date</th><th>Note</th></tr></thead>
+        <table class="report-table">
+          <thead><tr><th>#</th><th>Category</th><th>Name</th><th>Amount (₹)</th><th>Date</th><th>Note</th></tr></thead>
           <tbody>
-            @for (e of expenses; track e.id) {
-              <tr><td style="text-transform:capitalize">{{e.category}}</td><td>{{e.name}}</td><td>₹{{e.amount | number:'1.0-0'}}</td><td>{{e.date}}</td><td>{{e.note || '-'}}</td></tr>
+            @for (e of filteredExpenses; track e.id; let i = $index) {
+              <tr><td>{{i + 1}}</td><td style="text-transform:capitalize">{{e.category}}</td><td>{{e.name}}</td><td>₹{{e.amount | number:'1.0-0'}}</td><td>{{e.date}}</td><td>{{e.note || '-'}}</td></tr>
             }
           </tbody>
+          <tfoot><tr class="totals-row"><td colspan="3"><strong>Total</strong></td><td><strong>₹{{filteredExpenseTotal | number:'1.0-0'}}</strong></td><td colspan="2"></td></tr></tfoot>
         </table>
       </div>
-    } @else { <div class="empty-state"><i class="fa-solid fa-wallet"></i><p>No expenses recorded</p></div> }
+    } @else { <div class="empty-state"><i class="fa-solid fa-wallet"></i><p>No expenses match the selected filters</p></div> }
+    <div class="report-print-footer">Generated on {{today | date:'dd MMM yyyy, hh:mm a'}}</div>
   </div>
 }
 
@@ -277,17 +364,46 @@
 
 <!-- Pending Payments -->
 @if (activeReport === 'pending') {
+  <div class="report-action-bar">
+    <div class="flex gap-8 flex-wrap">
+      <input class="form-control" style="max-width:280px" placeholder="Search bill or customer..." [(ngModel)]="pendingSearch" (input)="onPendingFilterChange()">
+      <select class="form-control" style="max-width:200px" [(ngModel)]="pendingStatus" (change)="onPendingFilterChange()">
+        <option value="">All Statuses</option>
+        <option value="Pending">Pending</option>
+        <option value="Advance Paid">Advance Paid</option>
+        <option value="Partially Paid">Partially Paid</option>
+        <option value="Credit">Credit</option>
+        <option value="Overdue">Overdue</option>
+      </select>
+    </div>
+  </div>
   <div class="card">
     @if (pendingBills.length) {
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Bill No</th><th>Customer</th><th>Date</th><th>Total</th><th>Paid</th><th>Balance</th><th>Status</th></tr></thead>
+          <thead><tr>
+            <th><button class="sort-button" (click)="sortPendingBy('billNumber')">Bill No <i class="fa-solid" [class.fa-arrow-up-wide-short]="pendingSortColumn === 'billNumber' && pendingSortDirection === 'asc'" [class.fa-arrow-down-wide-short]="pendingSortColumn !== 'billNumber' || pendingSortDirection === 'desc'"></i></button></th>
+            <th><button class="sort-button" (click)="sortPendingBy('customerName')">Customer <i class="fa-solid" [class.fa-arrow-up-wide-short]="pendingSortColumn === 'customerName' && pendingSortDirection === 'asc'" [class.fa-arrow-down-wide-short]="pendingSortColumn !== 'customerName' || pendingSortDirection === 'desc'"></i></button></th>
+            <th><button class="sort-button" (click)="sortPendingBy('billDate')">Date <i class="fa-solid" [class.fa-arrow-up-wide-short]="pendingSortColumn === 'billDate' && pendingSortDirection === 'asc'" [class.fa-arrow-down-wide-short]="pendingSortColumn !== 'billDate' || pendingSortDirection === 'desc'"></i></button></th>
+            <th><button class="sort-button" (click)="sortPendingBy('totalAmount')">Total <i class="fa-solid" [class.fa-arrow-up-wide-short]="pendingSortColumn === 'totalAmount' && pendingSortDirection === 'asc'" [class.fa-arrow-down-wide-short]="pendingSortColumn !== 'totalAmount' || pendingSortDirection === 'desc'"></i></button></th>
+            <th><button class="sort-button" (click)="sortPendingBy('paidAmount')">Paid <i class="fa-solid" [class.fa-arrow-up-wide-short]="pendingSortColumn === 'paidAmount' && pendingSortDirection === 'asc'" [class.fa-arrow-down-wide-short]="pendingSortColumn !== 'paidAmount' || pendingSortDirection === 'desc'"></i></button></th>
+            <th><button class="sort-button" (click)="sortPendingBy('balanceAmount')">Balance <i class="fa-solid" [class.fa-arrow-up-wide-short]="pendingSortColumn === 'balanceAmount' && pendingSortDirection === 'asc'" [class.fa-arrow-down-wide-short]="pendingSortColumn !== 'balanceAmount' || pendingSortDirection === 'desc'"></i></button></th>
+            <th><button class="sort-button" (click)="sortPendingBy('paymentStatus')">Status <i class="fa-solid" [class.fa-arrow-up-wide-short]="pendingSortColumn === 'paymentStatus' && pendingSortDirection === 'asc'" [class.fa-arrow-down-wide-short]="pendingSortColumn !== 'paymentStatus' || pendingSortDirection === 'desc'"></i></button></th>
+          </tr></thead>
           <tbody>
-            @for (b of pendingBills; track b.id) {
+            @for (b of paginatedPendingBills; track b.id) {
               <tr><td>{{b.billNumber}}</td><td>{{b.customerName}}</td><td>{{b.billDate}}</td><td>₹{{b.totalAmount | number:'1.0-0'}}</td><td>₹{{b.paidAmount | number:'1.0-0'}}</td><td style="color:#dc2626;font-weight:700">₹{{b.balanceAmount | number:'1.0-0'}}</td><td><span class="badge {{getStatusClass(b.paymentStatus)}}">{{b.paymentStatus}}</span></td></tr>
             }
           </tbody>
         </table>
+      </div>
+      <div class="pagination" aria-label="Pending payments pagination">
+        <span>Showing {{pendingPageStart}}-{{pendingPageEnd}} of {{pendingBills.length}}</span>
+        <div class="flex gap-8">
+          <button class="btn btn-secondary btn-sm" (click)="goToPendingPage(pendingPage - 1)" [disabled]="pendingPage === 1">Previous</button>
+          <span class="page-number">Page {{pendingPage}} of {{pendingTotalPages}}</span>
+          <button class="btn btn-secondary btn-sm" (click)="goToPendingPage(pendingPage + 1)" [disabled]="pendingPage === pendingTotalPages">Next</button>
+        </div>
       </div>
     } @else { <div class="empty-state"><i class="fa-solid fa-circle-check" style="color:#16a34a"></i><p>No pending payments!</p></div> }
   </div>

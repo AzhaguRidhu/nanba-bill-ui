@@ -21,12 +21,17 @@ export class CustomersComponent implements OnInit {
   editing: Customer | null = null;
   historyCustomer: Customer | null = null;
   customerBills: Bill[] = [];
+  currentPage = 1;
+  readonly pageSize = 10;
 
   form: Customer = this.blank();
 
   constructor(private ds: DataService) {}
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    this.load();
+    this.ds.ready$.subscribe(() => this.load());
+  }
 
   load() {
     this.customers = this.ds.getCustomers();
@@ -38,7 +43,17 @@ export class CustomersComponent implements OnInit {
     this.filtered = this.customers.filter(c =>
       c.name.toLowerCase().includes(q) || c.mobile.includes(q) || c.place.toLowerCase().includes(q)
     );
+    this.currentPage = 1;
   }
+
+  get paginatedCustomers() {
+    return this.filtered.slice((this.currentPage - 1) * this.pageSize, this.currentPage * this.pageSize);
+  }
+
+  get totalPages() { return Math.max(1, Math.ceil(this.filtered.length / this.pageSize)); }
+  get pageStart() { return this.filtered.length ? (this.currentPage - 1) * this.pageSize + 1 : 0; }
+  get pageEnd() { return Math.min(this.currentPage * this.pageSize, this.filtered.length); }
+  goToPage(page: number) { this.currentPage = Math.min(Math.max(page, 1), this.totalPages); }
 
   blank(): Customer {
     return { id: '', name: '', place: '', whatsapp: '', mobile: '', createdAt: '' };

@@ -19,6 +19,10 @@ export class ExpensesComponent implements OnInit {
   activeTab: 'direct' | 'fixed' | 'depreciation' | 'printing' = 'direct';
   showModal = false;
   editing: Expense | null = null;
+  currentPage = 1;
+  readonly pageSize = 10;
+  sortColumn: 'name' | 'amount' | 'date' | 'note' = 'date';
+  sortDirection: 'asc' | 'desc' = 'desc';
 
   form: Expense = this.blank();
   customExpenseName = '';
@@ -32,12 +36,17 @@ export class ExpensesComponent implements OnInit {
 
   constructor(private ds: DataService) {}
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    this.load();
+    this.ds.ready$.subscribe(() => this.load());
+  }
 
   load() {
-    this.expenses = this.ds.getExpenses();
+    this.ds.getExpensesall().subscribe(expenses => {
+      this.expenses = [...expenses].reverse();
+      this.applyFilter();
+    });
     this.expenseMasterCategories = this.ds.getExpenseCategories();
-    this.applyFilter();
   }
 
   filteredMasterCategories() {
@@ -45,10 +54,34 @@ export class ExpensesComponent implements OnInit {
   }
 
   applyFilter() {
-    this.filtered = this.expenses.filter(e => e.category === this.activeTab);
+    this.filtered = this.sortExpenses(this.expenses.filter(e => e.category === this.activeTab));
+    this.currentPage = 1;
   }
 
   setTab(tab: any) { this.activeTab = tab; this.applyFilter(); }
+
+  sortBy(column: typeof this.sortColumn) {
+    if (this.sortColumn === column) this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    else { this.sortColumn = column; this.sortDirection = 'asc'; }
+    this.filtered = this.sortExpenses(this.filtered);
+    this.currentPage = 1;
+  }
+
+  private sortExpenses(expenses: Expense[]): Expense[] {
+    const direction = this.sortDirection === 'asc' ? 1 : -1;
+    return [...expenses].sort((a, b) => {
+      const first = a[this.sortColumn];
+      const second = b[this.sortColumn];
+      if (first === second) return 0;
+      return (first < second ? -1 : 1) * direction;
+    });
+  }
+
+  get paginatedExpenses() { return this.filtered.slice((this.currentPage - 1) * this.pageSize, this.currentPage * this.pageSize); }
+  get totalPages() { return Math.max(1, Math.ceil(this.filtered.length / this.pageSize)); }
+  get pageStart() { return this.filtered.length ? (this.currentPage - 1) * this.pageSize + 1 : 0; }
+  get pageEnd() { return Math.min(this.currentPage * this.pageSize, this.filtered.length); }
+  goToPage(page: number) { this.currentPage = Math.min(Math.max(page, 1), this.totalPages); }
 
   blank(): Expense {
     return { id: '', category: 'direct', name: '', amount: 0, date: new Date().toISOString().split('T')[0], note: '' };
@@ -62,9 +95,13 @@ export class ExpensesComponent implements OnInit {
     if (!name || this.form.amount <= 0) return;
     this.form.name = name;
     if (!this.form.id) this.form.id = Date.now().toString();
-    this.ds.saveExpense(this.form);
-    this.showModal = false;
-    this.load();
+    this.ds.saveExpense(this.form).subscribe({
+      next: () => {
+        this.showModal = false;
+        this.load();
+      },
+      error: () => alert('Failed to save expense')
+    });
   }
 
   delete(id: string) {

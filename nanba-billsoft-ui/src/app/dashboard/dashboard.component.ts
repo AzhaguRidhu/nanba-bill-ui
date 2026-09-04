@@ -2,39 +2,71 @@ import { Component, OnInit, AfterViewInit, ElementRef, ViewChild } from '@angula
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { DataService } from '../data.service';
+import { FormsModule } from '@angular/forms';
 
 declare const Chart: any;
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink,FormsModule],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })
 export class DashboardComponent implements OnInit, AfterViewInit {
   @ViewChild('salesChart') salesChartRef!: ElementRef;
   @ViewChild('categoryChart') categoryChartRef!: ElementRef;
+  availableYears: number[] = [];
+  filterYear = new Date().getFullYear();
 
   stats: any = {};
   recentBills: any[] = [];
+  private salesChart: any;
+  private categoryChart: any;
+  private viewInitialized = false;
 
   constructor(public ds: DataService) {}
 
   ngOnInit() {
-    this.stats = this.ds.getDashboardStats();
-    this.recentBills = this.ds.getBills().slice(-5).reverse();
+     this.buildAvailableYears();
+    this.load();
+    this.ds.yearReady$.subscribe(() => {
+      this.updateDashboard();
+      if (this.viewInitialized) {
+        this.renderSalesChart();
+        this.renderCategoryChart();
+      }
+    });
+  }
+  onYearChange() {
+    this.load();
+  }
+  load() {
+   this.ds.getBillsByYear(this.filterYear);
+   this.updateDashboard();
   }
 
+  private updateDashboard() {
+    this.stats = this.ds.getDashboardStats();
+    this.recentBills = [...this.ds.getBills()].slice(-5).reverse();
+  }
+  buildAvailableYears() {
+    const years = new Set<number>();
+    years.add(new Date().getFullYear());
+    this.availableYears = Array.from(years).sort((a, b) => b - a);
+    console.log('Available years:', this.availableYears);
+  }
   ngAfterViewInit() {
+    this.viewInitialized = true;
     this.renderSalesChart();
     this.renderCategoryChart();
   }
 
   renderSalesChart() {
+    this.salesChart?.destroy();
     const data = this.ds.getMonthlySales();
     if (!data.length || !this.salesChartRef) return;
-    new Chart(this.salesChartRef.nativeElement, {
+    this.salesChart = new Chart(this.salesChartRef.nativeElement, {
       type: 'bar',
       data: {
         labels: data.map(d => d.month),
@@ -45,9 +77,10 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   renderCategoryChart() {
+    this.categoryChart?.destroy();
     const data = this.ds.getCategorySales();
     if (!data.length || !this.categoryChartRef) return;
-    new Chart(this.categoryChartRef.nativeElement, {
+    this.categoryChart = new Chart(this.categoryChartRef.nativeElement, {
       type: 'doughnut',
       data: {
         labels: data.map(d => d.category),

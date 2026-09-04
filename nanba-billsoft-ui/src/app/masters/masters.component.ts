@@ -25,7 +25,13 @@ export class MastersComponent implements OnInit {
 
   // Item master state
   selectedCategory: CategoryItem | null = null;
-  categoryItems: ItemMaster[] = [];
+
+  // categoryItems is computed live from the cache so it always reflects
+  // the latest data even after async API responses update _itemMasters.
+  get categoryItems(): ItemMaster[] {
+    if (!this.selectedCategory) return [];
+    return this.ds.getItemsByCategory(this.selectedCategory.id);
+  }
 
   // Modals
   showBillModal = false;
@@ -42,14 +48,14 @@ export class MastersComponent implements OnInit {
 
   constructor(public ds: DataService) {}
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    this.load();
+    this.ds.ready$.subscribe(() => this.load());
+  }
 
   load() {
     this.billCategories = this.ds.getBillCategories();
     this.expenseCategories = this.ds.getExpenseCategories();
-    if (this.selectedCategory) {
-      this.categoryItems = this.ds.getItemsByCategory(this.selectedCategory.id);
-    }
   }
 
   // ---- Bill Categories ----
@@ -72,9 +78,11 @@ export class MastersComponent implements OnInit {
   deleteBillCat(id: string) {
     if (confirm('Delete this category? All items under it will also be removed.')) {
       this.ds.deleteBillCategory(id);
-      // remove all items under this category
       this.ds.getItemMasters().filter(i => i.categoryId === id).forEach(i => this.ds.deleteItemMaster(i.id));
-      if (this.selectedCategory?.id === id) this.selectedCategory = null;
+      if (this.selectedCategory?.id === id) {
+        this.selectedCategory = null;
+        this.activeTab = 'bill';
+      }
       this.load();
     }
   }
@@ -84,7 +92,6 @@ export class MastersComponent implements OnInit {
 
   selectCategory(cat: CategoryItem) {
     this.selectedCategory = cat;
-    this.categoryItems = this.ds.getItemsByCategory(cat.id);
     this.activeTab = 'items';
   }
 
@@ -99,13 +106,11 @@ export class MastersComponent implements OnInit {
     if (!this.itemForm.id) this.itemForm.id = Date.now().toString();
     this.ds.saveItemMaster(this.itemForm);
     this.showItemModal = false;
-    this.categoryItems = this.ds.getItemsByCategory(this.selectedCategory!.id);
   }
 
   deleteItem(id: string) {
     if (confirm('Delete this item?')) {
       this.ds.deleteItemMaster(id);
-      this.categoryItems = this.ds.getItemsByCategory(this.selectedCategory!.id);
     }
   }
 

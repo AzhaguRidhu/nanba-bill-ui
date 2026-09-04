@@ -15,12 +15,13 @@ export class LayoutComponent {
   today = new Date();
 
   private allNavItems = [
-    { path: '/dashboard', icon: 'fa-gauge-high', label: 'Dashboard', superOnly: false },
+    { path: '/dashboard', icon: 'fa-gauge-high', label: 'Dashboard', superOnly: true },
     { path: '/customers', icon: 'fa-users', label: 'Customers', superOnly: true },
-    { path: '/bills', icon: 'fa-file-invoice', label: 'Bills', superOnly: false },
+    { path: '/bills', icon: 'fa-file-invoice', label: 'Bills', superOnly: true },
+    { path: '/bills/new', icon: 'fa-plus', label: 'New Bill Creation', superOnly: false, userOnly: true },
     { path: '/payments', icon: 'fa-credit-card', label: 'Payments', superOnly: true },
     { path: '/expenses', icon: 'fa-wallet', label: 'Expenses', superOnly: true },
-    { path: '/remaining', icon: 'fa-clock', label: 'Remaining', superOnly: true },
+    { path: '/remaining', icon: 'fa-clock', label: 'Remaining Balance', superOnly: false, userOnly: true },
     { path: '/reports', icon: 'fa-chart-bar', label: 'Reports', superOnly: true },
     { path: '/users', icon: 'fa-users-gear', label: 'Users', superOnly: true },
     { path: '/masters', icon: 'fa-layer-group', label: 'Masters', superOnly: true }
@@ -28,7 +29,7 @@ export class LayoutComponent {
 
   navItems = computed(() => {
     const isSuper = this.auth.isSuper();
-    return this.allNavItems.filter(item => !item.superOnly || isSuper);
+    return this.allNavItems.filter(item => item.userOnly ? !isSuper : item.superOnly ? isSuper : true);
   });
 
   currentUser = computed(() => this.auth.currentUser());

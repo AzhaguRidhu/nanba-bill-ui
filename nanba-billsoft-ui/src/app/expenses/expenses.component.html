@@ -30,11 +30,18 @@
   @if (filtered.length) {
     <div class="table-wrap">
       <table>
-        <thead><tr><th>#</th><th>Name</th><th>Amount</th><th>Date</th><th>Note</th><th>Actions</th></tr></thead>
+        <thead><tr>
+          <th>#</th>
+          <th><button class="sort-button" (click)="sortBy('name')">Name <i class="fa-solid" [class.fa-arrow-up-wide-short]="sortColumn === 'name' && sortDirection === 'asc'" [class.fa-arrow-down-wide-short]="sortColumn !== 'name' || sortDirection === 'desc'"></i></button></th>
+          <th><button class="sort-button" (click)="sortBy('amount')">Amount <i class="fa-solid" [class.fa-arrow-up-wide-short]="sortColumn === 'amount' && sortDirection === 'asc'" [class.fa-arrow-down-wide-short]="sortColumn !== 'amount' || sortDirection === 'desc'"></i></button></th>
+          <th><button class="sort-button" (click)="sortBy('date')">Date <i class="fa-solid" [class.fa-arrow-up-wide-short]="sortColumn === 'date' && sortDirection === 'asc'" [class.fa-arrow-down-wide-short]="sortColumn !== 'date' || sortDirection === 'desc'"></i></button></th>
+          <th><button class="sort-button" (click)="sortBy('note')">Note <i class="fa-solid" [class.fa-arrow-up-wide-short]="sortColumn === 'note' && sortDirection === 'asc'" [class.fa-arrow-down-wide-short]="sortColumn !== 'note' || sortDirection === 'desc'"></i></button></th>
+          <th>Actions</th>
+        </tr></thead>
         <tbody>
-          @for (e of filtered; track e.id; let i = $index) {
+          @for (e of paginatedExpenses; track e.id; let i = $index) {
             <tr>
-              <td>{{i+1}}</td>
+              <td>{{(currentPage - 1) * pageSize + i + 1}}</td>
               <td><strong>{{e.name}}</strong></td>
               <td>₹{{e.amount | number:'1.0-0'}}</td>
               <td>{{e.date}}</td>
@@ -49,6 +56,14 @@
           }
         </tbody>
       </table>
+    </div>
+    <div class="pagination" aria-label="Expenses pagination">
+      <span>Showing {{pageStart}}-{{pageEnd}} of {{filtered.length}}</span>
+      <div class="flex gap-8">
+        <button class="btn btn-secondary btn-sm" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">Previous</button>
+        <span class="page-number">Page {{currentPage}} of {{totalPages}}</span>
+        <button class="btn btn-secondary btn-sm" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">Next</button>
+      </div>
     </div>
   } @else {
     <div class="empty-state"><i class="fa-solid fa-wallet"></i><p>No expenses in this category</p></div>

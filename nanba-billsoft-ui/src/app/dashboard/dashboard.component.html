@@ -1,6 +1,12 @@
 <div class="page-header">
   <h2><i class="fa-solid fa-gauge-high"></i> Dashboard</h2>
+   <select class="form-control" style="max-width:120px" [(ngModel)]="filterYear" (ngModelChange)="onYearChange()">
+          @for (y of availableYears; track y) { <option [value]="y">{{y}}</option> }
+        </select>
+      
   <a routerLink="/bills/new" class="btn btn-primary"><i class="fa-solid fa-plus"></i> New Bill</a>
+
+      
 </div>
 
 <div class="grid-4 mb-16">
